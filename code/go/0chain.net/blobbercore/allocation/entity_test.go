@@ -2,11 +2,11 @@ package allocation
 
 import (
 	"testing"
-	// "gorm.io/gorm"
+	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
 	"0chain.net/core/common"
-	// mocksAllocation "0chain.net/blobbercore/allocation/mocks"
+	mocksAllocation "0chain.net/blobbercore/allocation/mocks"
 )
 
 func TestAllocationWantRead(t *testing.T) {
@@ -45,8 +45,6 @@ func TestAllocationWantRead(t *testing.T) {
 				BlobberID: tt.fields.blobberID,
 				ReadPrice: tt.fields.readPrice,
 			})
-
-			t.Log("Terms", *allocation.Terms[0], tt.args)
 
 			got := allocation.WantRead(
 				tt.args.blobberID, tt.args.numBlocks);
@@ -155,20 +153,20 @@ func TestPendingSubPendingWrite(t *testing.T) {
 	}
 	tests := []struct {
 		name string
-		args args
 		fields fields
+		args args
 		want int64
 	}{
 		{
 			name: "SubPendingWrite / Basic",
-			args: args{size: 1},
 			fields: fields{size: 2},
+			args: args{size: 1},
 			want: 1,
 		},
 		{
 			name: "SubPendingWrite / Below zero",
-			args: args{size: 2},
 			fields: fields{size: 1},
+			args: args{size: 2},
 			want: 0,
 		},
 	}
@@ -179,6 +177,86 @@ func TestPendingSubPendingWrite(t *testing.T) {
 
 			pending.SubPendingWrite(tt.args.size);
 			assert.Equal(t, tt.want, pending.PendingWrite)
+		})
+	}
+}
+
+func TestPendingHaveWrite(t *testing.T) {
+	type args struct {
+		writePools []*WritePool
+		wmt common.Timestamp
+	}
+	tests := []struct {
+		name string
+		args args
+		want int64
+	}{
+		{
+			name: "HaveWrite / Basic",
+			args: args{
+				writePools: []*WritePool{
+					&WritePool{Balance: 1},
+					&WritePool{Balance: 2},
+				},
+				wmt: common.Timestamp(0)},
+			want: 3,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pending := Pending{}
+			mockCtrl := gomock.NewController(t)
+			defer mockCtrl.Finish()
+
+			mockWantWriter := mocksAllocation.NewMockWantWriter(mockCtrl)
+			mockWantWriter.EXPECT().
+				WantWrite(gomock.Any(), gomock.Any(), tt.args.wmt).
+				Return(int64(0)).
+				Times(1)
+
+			got := pending.HaveWrite(
+				tt.args.writePools, mockWantWriter, tt.args.wmt);
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestSubReadRedeemed(t *testing.T) {
+	type args struct {
+		readPools []*ReadPool
+		readPoolRedeems []ReadPoolRedeem
+	}
+	tests := []struct {
+		name string
+		args args
+		want []*ReadPool
+	}{
+		{
+			name: "HaveRead / Basic",
+			args: args{
+				readPools: []*ReadPool{
+					&ReadPool{PoolID: "1", Balance: 3},
+					&ReadPool{PoolID: "2", Balance: 4},
+					&ReadPool{PoolID: "3", Balance: 5},
+				},
+				readPoolRedeems: []ReadPoolRedeem{
+					ReadPoolRedeem{PoolID: "1", Balance: 1},
+					ReadPoolRedeem{PoolID: "2", Balance: 2},
+				},
+			},
+			want: []*ReadPool{
+				&ReadPool{PoolID: "1", Balance: 2},
+				&ReadPool{PoolID: "2", Balance: 2},
+				&ReadPool{PoolID: "3", Balance: 5},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			SubReadRedeemed(tt.args.readPools, tt.args.readPoolRedeems);
+			assert.Equal(t, tt.want, tt.args.readPools)
 		})
 	}
 }
