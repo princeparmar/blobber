@@ -233,7 +233,7 @@ func TestSubReadRedeemed(t *testing.T) {
 		want []*ReadPool
 	}{
 		{
-			name: "HaveRead / Basic",
+			name: "SubReadRedeemed / Basic",
 			args: args{
 				readPools: []*ReadPool{
 					&ReadPool{PoolID: "1", Balance: 3},
