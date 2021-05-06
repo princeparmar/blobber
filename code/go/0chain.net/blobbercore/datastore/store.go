@@ -11,7 +11,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	. "0chain.net/core/logging"
+	"0chain.net/core/logging"
 )
 
 type contextKey int
@@ -20,6 +20,14 @@ const CONNECTION_CONTEXT_KEY contextKey = iota
 
 type Store struct {
 	db *gorm.DB
+}
+
+type StoreInterface interface {
+	Open() error
+	Close()
+	CreateTransaction(ctx context.Context)
+	GetTransaction(ctx context.Context) *gorm.DB
+	GetDB() *gorm.DB
 }
 
 var store Store
@@ -74,7 +82,7 @@ func (store *Store) GetTransaction(ctx context.Context) *gorm.DB {
 	if conn != nil {
 		return conn.(*gorm.DB)
 	}
-	Logger.Error("No connection in the context.")
+	logging.Logger.Error("No connection in the context.")
 	return nil
 }
 

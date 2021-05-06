@@ -178,4 +178,6 @@ REGION
 
 ```
 mockgen -source=./code/go/0chain.net/blobbercore/allocation/entity.go -destination=./code/go/0chain.net/blobbercore/allocation/mocks/entity.go
+mockgen -source=./code/go/0chain.net/blobbercore/allocation/workers.go -destination=./code/go/0chain.net/blobbercore/allocation/mocks/workers.go
+mockgen -source=./code/go/0chain.net/blobbercore/datastore/store.go -destination=./code/go/0chain.net/blobbercore/datastore/mocks/store.go
 ```
