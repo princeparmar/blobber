@@ -39,7 +39,9 @@ type Allocation struct {
 	Terms []*Terms `gorm:"-"`
 
 	// Used for 3rd party/payer operations
-	PayerID string `gorm:"column:payer_id"`
+	PayerPoolID string `gorm:"column:payerpool_id"`
+	// Should it be kept for the migration period?
+	// PayerID string `gorm:"column:payer_id"`
 }
 
 func (Allocation) TableName() string {
@@ -330,4 +332,15 @@ func SubReadRedeemed(rps []*ReadPool, redeems []ReadPoolRedeem) {
 			rp.Balance -= sub
 		}
 	}
+}
+
+type PayerPool struct {
+	// ID string `gorm:"column:id;primary_key"`
+	// ClientID     string `gorm:"column:client_id"`
+	// BlobberID    string `gorm:"column:blobber_id"`
+	AllocationID string `gorm:"column:allocation_id"`
+}
+
+func (*PayerPool) TableName() string {
+	return "payer_pools"
 }
