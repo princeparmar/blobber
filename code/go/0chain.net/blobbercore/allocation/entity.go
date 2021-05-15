@@ -333,14 +333,3 @@ func SubReadRedeemed(rps []*ReadPool, redeems []ReadPoolRedeem) {
 		}
 	}
 }
-
-type PayerPool struct {
-	// ID string `gorm:"column:id;primary_key"`
-	// ClientID     string `gorm:"column:client_id"`
-	// BlobberID    string `gorm:"column:blobber_id"`
-	AllocationID string `gorm:"column:allocation_id"`
-}
-
-func (*PayerPool) TableName() string {
-	return "payer_pools"
-}
