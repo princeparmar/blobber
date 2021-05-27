@@ -715,6 +715,16 @@ func verifySignatureFromRequest(r *http.Request, pbK string) (bool, error) {
 	return encryption.Verify(pbK, sign, hash)
 }
 
+// verifySignatureFromRequestWithAlloc verifyes signature passed as common.ClientSignatureHeader header.
+func verifySignatureFromRequestWithAlloc(r *http.Request, pbK string, allocID string) (bool, error) {
+	sign := r.Header.Get(common.ClientSignatureHeader)
+	if len(sign) < 64 {
+		return false, nil
+	}
+
+	return encryption.Verify(pbK, sign, allocID)
+}
+
 // pathsFromReq retrieves paths value from request which can be represented as single "path" value or "paths" values,
 // marshalled to json.
 func pathsFromReq(r *http.Request) ([]string, error) {
