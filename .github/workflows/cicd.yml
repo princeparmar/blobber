@@ -28,9 +28,9 @@ jobs:
           owner: 0chain
           repo: blobber
           github_token: ${{ secrets.CICD }}
-          workflow_file_name: test.yml
+          workflow_file_name: build.yml #build.yml
           ref: ${{ steps.get_branch.outputs.BRANCH }}
-          inputs: {"image_tag":"$TAG"}
+          inputs: '{"latest_tag":"testing_cicd"}'
           propagate_failure: true
           trigger_workflow: true
           wait_workflow: true
@@ -85,17 +85,34 @@ jobs:
   #           sleep 2
   #         done
 
-  #     # - name: Triggering ci.yml to run Postman API tests
-  #     #   uses: convictional/trigger-workflow-and-wait@v1.3.0
-  #     #   with:
-  #     #     owner: 0chain
-  #     #     repo: 0proxy
-  #     #     github_token: ${{ secrets.GOSDK }}
-  #     #     workflow_file_name: build.yml
-  #     #     ref: master
-  #     #     propagate_failure: true
-  #     #     trigger_workflow: true
-  #     #     wait_workflow: true
+  api-integeration-test:
+    runs-on: ubuntu-20.04
+    steps: 
+      - name: Triggering ci.yml for API Integration Tests.
+        uses: convictional/trigger-workflow-and-wait@v1.3.0
+        with:
+          owner: 0chain
+          repo: blobber
+          github_token: ${{ secrets.CICD }}
+          workflow_file_name: test.yml #ci.yml
+          ref: ${{ steps.get_branch.outputs.BRANCH }}
+          inputs: '{}'
+          propagate_failure: true
+          trigger_workflow: true
+          wait_workflow: true
+
+      - name: Triggering Load Test from loadTes repository.
+        uses: convictional/trigger-workflow-and-wait@v1.3.0
+        with:
+          owner: 0chain
+          repo: laodTest
+          github_token: ${{ secrets.CICD }}
+          workflow_file_name: load-test-v1.yml
+          ref: ${{ steps.get_branch.outputs.BRANCH }}
+          inputs: '{}'
+          propagate_failure: true
+          trigger_workflow: true
+          wait_workflow: true
 
   #     # - name: Build
   #     #   run: make build
