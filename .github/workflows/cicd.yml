@@ -1,4 +1,4 @@
-name: CICD_TEST_HERTZNER
+name: CICD_TEST_HERTZ
 
 on:
   push:
