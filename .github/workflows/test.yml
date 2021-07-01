@@ -1,10 +1,20 @@
 name: test
 
 on:
-  workflow_dispatch
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Person to greet'
+        required: true
+        default: 'Mona the Octocat'
 
 jobs:
   dockerize_blobber:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+
+    - name: Get Inputs
+      id: get_inputs
+      run: |
+        echo "This workflow run is triggered by ${{ github.event.inputs.name }}."
