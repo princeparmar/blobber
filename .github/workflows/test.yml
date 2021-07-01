@@ -3,7 +3,7 @@ name: test
 on:
   workflow_dispatch:
     inputs:
-      name:
+      image_tag:
         description: 'Person to greet'
         required: true
         default: 'Mona the Octocat'
@@ -17,4 +17,4 @@ jobs:
     - name: Get Inputs
       id: get_inputs
       run: |
-        echo "This workflow run is triggered by ${{ github.event.inputs.name }}."
+        echo "This workflow run is triggered by ${{ github.event.inputs.image_tag }}."
