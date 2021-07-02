@@ -1,4 +1,4 @@
-name: Dockerize
+name: Dockerize_Image_Build
 
 on:
   workflow_dispatch:
@@ -9,8 +9,6 @@ on:
         required: true
 
 env:
-  ZCHAIN_BUILDBASE: zchain_build_base
-  ZCHAIN_BUILDRUN: zchain_run_base
   BLOBBER_REGISTRY: ${{ secrets.BLOBBER_REGISTRY }}
   VALIDATOR_REGISTRY: ${{ secrets.VALIDATOR_REGISTRY }}
 

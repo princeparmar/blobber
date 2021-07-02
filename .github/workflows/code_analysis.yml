@@ -1,4 +1,4 @@
-name: CI
+name: Code_Analysis_N_Test
 
 on:
   push:
@@ -81,50 +81,31 @@ jobs:
       - name: Fail if any file has changed
         run: if output=$(git status --porcelain) && [ -z "$output" ]; then exit 0; else git status; exit 1; fi;
 
-  dockerize_blobber:
+  build-N-push-image:
     runs-on: ubuntu-20.04
-    needs: test
-    if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-    - uses: actions/checkout@v2
+    steps: 
+      - uses: actions/checkout@v2
 
-    - name: Get the version
-      id: get_version
-      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
+      - name: Get Branch
+        id: get_branch
+        run: |
+          BRANCH=$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')
+          SHORT_SHA=$(echo $GITHUB_SHA | head -c 8)
+          echo ::set-output name=BRANCH::${BRANCH}
+          echo ::set-output name=VERSION::${BRANCH}-${SHORT_SHA}
+          echo ::set-output name=INPUT_TAG::'{"latest_tag":"$VERSION"}'
 
-    - name: Login to Docker Hub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-    - name: Build
-      run: |
-        docker build -t $BLOBBER_REGISTRY:$TAG -f docker.local/Dockerfile .
-        docker push $BLOBBER_REGISTRY:$TAG
-      env:
-        TAG: ${{ steps.get_version.outputs.VERSION }}
-
-  dockerize_validator:
-    runs-on: ubuntu-20.04
-    needs: test
-    if: github.event_name == 'release' && github.event.action == 'published'
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Get the version
-      id: get_version
-      run: echo ::set-output name=VERSION::$(echo $GITHUB_REF | cut -d / -f 3)
-
-    - name: Login to Docker Hub
-      uses: docker/login-action@v1
-      with:
-        username: ${{ secrets.DOCKERHUB_USERNAME }}
-        password: ${{ secrets.DOCKERHUB_PASSWORD }}
-
-    - name: Build
-      run: |
-        docker build -t $VALIDATOR_REGISTRY:$TAG -f docker.local/ValidatorDockerfile .
-        docker push $VALIDATOR_REGISTRY:$TAG
-      env:
-        TAG: ${{ steps.get_version.outputs.VERSION }}
+      - name: Triggering build.yml for creating & pushing docker images.
+        uses: convictional/trigger-workflow-and-wait@v1.3.0
+        with:
+          owner: 0chain
+          repo: blobber
+          github_token: ${{ secrets.CICD }}
+          workflow_file_name: build_image.yml #build.yml
+          ref: ${{ steps.get_branch.outputs.BRANCH }}
+          inputs: $TAG
+          propagate_failure: true
+          trigger_workflow: true
+          wait_workflow: true
+        env:
+          TAG: ${{ steps.get_branch.outputs.INPUT_TAG }}
