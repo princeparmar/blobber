@@ -1,10 +1,6 @@
 name: Dockerize_Image_Build
 
-on:
-  workflow_run:
-    workflows: ["Code_Analysis_N_Test"]
-    types:
-      - completed      
+on:      
   workflow_dispatch:
     inputs:
       latest_tag:
