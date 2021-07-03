@@ -1,7 +1,7 @@
 name: CICD_TEST_HERTZNER
 
 on:
-        #workflow_dispatch
+ workflow_dispatch:
    push:
      branches:
        - gitactionsfix
