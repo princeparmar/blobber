@@ -104,9 +104,9 @@ jobs:
           github_token: ${{ secrets.CICD }}
           workflow_file_name: build.yml #build.yml
           ref: ${{ steps.get_branch.outputs.BRANCH }}
-          inputs: ${{ steps.get_branch.outputs.VERSION }} 
+          inputs: '{"tag":$TAG}' 
           propagate_failure: true
           trigger_workflow: true
           wait_workflow: true
-         #env:
-                #TAG: ${{ steps.get_branch.outputs.VERSION }}
+        env:
+          TAG: ${{ steps.get_branch.outputs.VERSION }}
