@@ -7,8 +7,8 @@ on:
         description: 'type yes for building latest tag'
         default: 'no'
         required: true
- jobs:
-      run: |
-        echo "Hello"
+jobs:
+  run: |
+    echo "Hello"
 
 
