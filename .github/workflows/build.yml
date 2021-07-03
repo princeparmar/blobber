@@ -39,7 +39,7 @@ jobs:
       run: |
         docker build -t $BLOBBER_REGISTRY:$TAG -f "$DOCKERFILE_BLOB" .
         docker tag $BLOBBER_REGISTRY:$TAG $BLOBBER_REGISTRY:latest
-        docker push $BLOBBER_REGISTRY:$TAG
+        # docker push $BLOBBER_REGISTRY:$TAG
       env:
         TAG: ${{ steps.get_version.outputs.VERSION }}
         DOCKERFILE_BLOB: "docker.local/Dockerfile"
@@ -74,7 +74,7 @@ jobs:
       run: |
         docker build -t $VALIDATOR_REGISTRY:$TAG -f "$DOCKERFILE_PROXY" .
         docker tag $VALIDATOR_REGISTRY:$TAG $VALIDATOR_REGISTRY:latest
-        docker push $VALIDATOR_REGISTRY:$TAG
+        #docker push $VALIDATOR_REGISTRY:$TAG
       env:
         TAG: ${{ steps.get_version.outputs.VERSION }}
         DOCKERFILE_PROXY: "docker.local/ValidatorDockerfile"
