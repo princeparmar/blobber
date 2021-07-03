@@ -1,11 +1,11 @@
 name: Dockerize_Image_Build
 
 on:      
- #workflow_dispatch:
-  workflow_run:
-    workflows: ["Code_Analysis_N_Test"]
-    types:
-      - completed        
+  :workflow_dispatch:
+ #workflow_run:
+ #  workflows: ["Code_Analysis_N_Test"]
+ #  types:
+ #    - completed        
         # inputs:
          #latest_tag:
           #description: 'type yes for building latest tag'
