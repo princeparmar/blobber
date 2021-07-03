@@ -93,7 +93,7 @@ jobs:
           SHORT_SHA=$(echo $GITHUB_SHA | head -c 8)
           echo ::set-output name=BRANCH::${BRANCH}
           echo ::set-output name=VERSION::${BRANCH}-${SHORT_SHA}
-          echo ::set-output name=INPUT_TAG::'{"latest_tag":"${VERSION}"}'
+          #echo ::set-output name=INPUT_TAG::'{"latest_tag":"${VERSION}"}'
           echo "This workflow run is triggered by ${INPUT_TAG}."
 
       - name: Triggering build.yml for creating & pushing docker images.
@@ -109,4 +109,4 @@ jobs:
           trigger_workflow: true
           wait_workflow: true
         env:
-          TAG: ${{ steps.get_branch.outputs.INPUT_TAG }}
+          TAG: ${{ steps.get_branch.outputs.VERSION }}
