@@ -8,7 +8,6 @@ on:
         default: 'no'
         required: true
 jobs:
-  run: |
-     echo "Hello"
+  
 
 
