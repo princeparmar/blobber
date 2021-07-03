@@ -6,11 +6,11 @@ on:
  #  workflows: ["Code_Analysis_N_Test"]
  #  types:
  #    - completed        
-        # inputs:
-         #latest_tag:
-          #description: 'type yes for building latest tag'
-          #default: 'no'
-          #required: true
+     inputs:
+       latest_tag:
+         description: 'type yes for building latest tag'
+         default: 'no'
+         required: true
 
 env:
   BLOBBER_REGISTRY: ${{ secrets.BLOBBER_REGISTRY }}
