@@ -128,15 +128,15 @@ jobs:
            wait_workflow: true
          env:
            TAG: ${{ steps.get_branch.outputs.VERSION }}
-       - name: Build
-         run: make build
-       - name: Running Load Tests
-         run: |
-           make run config=loadTest-load-testnet.yaml
+           #- name: Build
+           # run: make build
+           #- name: Running Load Tests
+           #run: |
+           #make run config=loadTest-load-testnet.yaml
 
-       - name: Uninstall the release
-         if: ${{ always() }}
-         run: helm uninstall zerochain -n zerochain
+           #- name: Uninstall the release
+           #if: ${{ always() }}
+           # run: helm uninstall zerochain -n zerochain
 
        - name: Deleting kubeconfig
          run: |
