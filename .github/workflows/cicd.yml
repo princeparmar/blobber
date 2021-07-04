@@ -1,14 +1,10 @@
 name: CICD_TEST_HERTZNER
 
 on:
-   push:
-     branches:
-       - gitactionsfix
-
-        # workflow_dispatch:
-         #push:
-         #branches:
-         #- gitactionsfix
+  workflow_dispatch:
+    push:
+      branches:
+      - gitactionsfix
 
 env:
   GITHUB_TOKEN: ${{ secrets.CICD }}
