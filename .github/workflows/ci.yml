@@ -1,10 +1,17 @@
 name: CI
 
 on:
-  push:
-  release:
-    types:
-      - published
+  workflow_dispatch:
+    inputs:
+      latest_tag:
+        description: 'type yes for building latest tag'
+        default: 'no'
+        required: true
+      
+        #push:
+        #release:
+        #types:
+        # - published
 
 env:
   BLOBBER_REGISTRY: ${{ secrets.BLOBBER_REGISTRY }}
