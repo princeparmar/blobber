@@ -42,53 +42,53 @@ jobs:
         env:
           TAG: ${{ steps.get_branch.outputs.VERSION }}
           # REF: ${{ steps.get_branch.outputs.BRANCH }}
-  # network-setup:
-  #   runs-on: ubuntu-20.04
-  #   env:
-  #     HOST: testnet.load.testnet-0chain.net
-  #   steps:
-  #     - uses: actions/checkout@v2
+  network-setup:
+     runs-on: ubuntu-20.04
+     env:
+       HOST: testnet.load.testnet-0chain.net
+     steps:
+       - uses: actions/checkout@v2
 
-  #     - uses: azure/setup-helm@v1
-  #       with:
-  #         version: 'v3.2.2'
-  #     - name: Setup helm repo
-  #       run: |
-  #         helm repo add 0chain http://0chain-helm-chart.s3-website.us-east-2.amazonaws.com/
-  #     - name: Setup kubeconfig
-  #       run: |
-  #         mkdir -p ~/.kube
-  #         echo "${{ secrets.KUBECONFIG64TEST }}" | base64 -d > ~/.kube/config
-  #     - name: Uninstall old release
-  #       run: |
-  #         helm uninstall zerochain -n zerochain || true
-  #     - name: Setup chain
-  #       run: |
-  #         helm install zerochain -n zerochain \
-  #         --set ingress.host=${HOST} \
-  #         --set sharder.image.tag=latest \
-  #         --set miner.image.tag=latest \
-  #         --set blobber.image.tag=latest \
-  #         --set validator.image.tag=latest \
-  #         0chain/0chain
+       - uses: azure/setup-helm@v1
+         with:
+           version: 'v3.2.2'
+       - name: Setup helm repo
+         run: |
+           helm repo add 0chain http://0chain-helm-chart.s3-website.us-east-2.amazonaws.com/
+       - name: Setup kubeconfig
+         run: |
+           mkdir -p ~/.kube
+           echo "${{ secrets.KUBECONFIG64TEST }}" | base64 -d > ~/.kube/config
+       - name: Uninstall old release
+         run: |
+           helm uninstall zerochain -n zerochain || true
+       - name: Setup chain
+         run: |
+           helm install zerochain -n zerochain \
+           --set ingress.host=${HOST} \
+           --set sharder.image.tag=latest \
+           --set miner.image.tag=latest \
+           --set blobber.image.tag=latest \
+           --set validator.image.tag=latest \
+           0chain/0chain
           
-  #     - name: Check if services are up
-  #       run: |
-  #         printf 'Waiting for 0dns'
-  #         until [[ $(curl -I --silent -o /dev/null -w %{http_code} http://${HOST}/dns/) =~ 2[0-9][0-9] ]] ;do
-  #           printf '.'
-  #           sleep 2
-  #         done
-  #         printf 'Waiting for 1st sharder'
-  #         until [[ $(curl -I --silent -o /dev/null -w %{http_code} http://${HOST}/sharder0/) =~ 2[0-9][0-9] ]] ;do
-  #           printf '.'
-  #           sleep 2
-  #         done
-  #         printf 'Waiting for 1st miner'
-  #         until [[ $(curl -I --silent -o /dev/null -w %{http_code} http://${HOST}/miner0/) =~ 2[0-9][0-9] ]] ;do
-  #           printf '.'
-  #           sleep 2
-  #         done
+       - name: Check if services are up
+         run: |
+           printf 'Waiting for 0dns'
+           until [[ $(curl -I --silent -o /dev/null -w %{http_code} http://${HOST}/dns/) =~ 2[0-9][0-9] ]] ;do
+             printf '.'
+             sleep 2
+           done
+           printf 'Waiting for 1st sharder'
+           until [[ $(curl -I --silent -o /dev/null -w %{http_code} http://${HOST}/sharder0/) =~ 2[0-9][0-9] ]] ;do
+             printf '.'
+             sleep 2
+           done
+           printf 'Waiting for 1st miner'
+           until [[ $(curl -I --silent -o /dev/null -w %{http_code} http://${HOST}/miner0/) =~ 2[0-9][0-9] ]] ;do
+             printf '.'
+             sleep 2
+           done
 
   api-integeration-test:
     runs-on: ubuntu-20.04
