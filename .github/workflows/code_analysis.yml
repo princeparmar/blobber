@@ -1,6 +1,7 @@
 name: Code_Analysis_N_Test
 
 on:
+  workflow_dispatch:      
   push:
   release:
     types:
