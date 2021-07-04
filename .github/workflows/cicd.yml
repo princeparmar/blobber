@@ -114,7 +114,7 @@ jobs:
            trigger_workflow: true
            wait_workflow: true
 
-       - name: Triggering Load Test from loadTes repository.
+       - name: Triggering Load Test.
          uses: convictional/trigger-workflow-and-wait@v1.3.0
          with:
            owner: 0chain
