@@ -22,7 +22,7 @@ on:
 
 jobs:
   loadTest:
-    runs-on: self-hosted
+    runs-on: ubuntu-20.04
     env:
       HOST: testnet.load.testnet-0chain.net
     steps:
