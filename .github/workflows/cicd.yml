@@ -109,10 +109,7 @@ jobs:
            github_token: ${{ secrets.CICD }}
            workflow_file_name: ci.yml #ci.yml
            ref: ${{ steps.get_branch.outputs.BRANCH }}
-           inputs:
-             descriptions: 'latest_tag'
-             required: true
-             default: ${{  env.TAG  }}
+           inputs: '${{  env.TAG  }}'
            propagate_failure: true
            trigger_workflow: true
            wait_workflow: true
@@ -125,10 +122,7 @@ jobs:
            github_token: ${{ secrets.CICD }}
            workflow_file_name: load-test-v1.yml
            ref: ${{ steps.get_branch.outputs.BRANCH }}
-           inputs:
-             descriptions: 'latest_tag'
-             required: true
-             default: ${{  env.TAG  }}
+           inputs: '${{  env.TAG  }}'
 
            propagate_failure: true
            trigger_workflow: true
