@@ -8,9 +8,10 @@ on:
         default: 'no'
         required: true
 
-          # push:
-          # branches:
-          # - gitactionsfix
+on:
+  push:
+    branches:
+    - gitactionsfix
 
 env:
   GITHUB_TOKEN: ${{ secrets.CICD }}
