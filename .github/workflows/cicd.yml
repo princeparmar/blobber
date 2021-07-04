@@ -2,9 +2,15 @@ name: CICD_TEST_HERTZNER
 
 on:
   workflow_dispatch:
-    push:
-      branches:
-      - gitactionsfix
+    inputs:
+      latest_tag:
+        description: 'type yes for building latest tag'
+        default: 'no'
+        required: true
+
+          # push:
+          # branches:
+          # - gitactionsfix
 
 env:
   GITHUB_TOKEN: ${{ secrets.CICD }}
