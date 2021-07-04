@@ -2,9 +2,8 @@ name: CICD_TEST_HERTZNER
 
 on:
    push:
-   release:
-     types:
-       - published
+     branches:
+       - gitactionsfix
 
         # workflow_dispatch:
          #push:
@@ -93,8 +92,17 @@ jobs:
 
   api-integeration-test:
     runs-on: ubuntu-20.04
-    steps: 
-      - name: Triggering ci.yml for API Integration Tests.
+    steps:
+       - uses: actions/checkout@v2     
+       - name: Get Branch
+         id: get_branch
+         run: |
+           BRANCH=$(echo ${GITHUB_REF#refs/heads/} | sed 's/\//-/g')
+           SHORT_SHA=$(echo $GITHUB_SHA | head -c 8)
+           echo ::set-output name=BRANCH::${BRANCH}
+           echo ::set-output name=VERSION::${BRANCH}-${SHORT_SHA}
+
+       - name: Triggering ci.yml for API Integration Tests.
         uses: convictional/trigger-workflow-and-wait@v1.3.0
         with:
           owner: 0chain
