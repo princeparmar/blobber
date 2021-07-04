@@ -134,5 +134,5 @@ jobs:
            inputs: ${{  env.TAG  }}
            propagate_failure: true
            trigger_workflow: true
-            wait_workflow: true
+           wait_workflow: true
 
