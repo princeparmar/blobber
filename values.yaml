@@ -1,0 +1,157 @@
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+blobber:
+  replicaCount: 3
+
+  # image:
+  #   repository: 0chaindev/blobber
+  #   pullPolicy: IfNotPresent
+  #   tag: latest
+
+  # imagePullSecrets: []
+  # nameOverride: ""
+  # fullnameOverride: ""
+
+  persistence:
+    enabled: false
+
+    ## A manually managed Persistent Volume and Claim
+    ## Requires persistence.enabled: true
+    ## If defined, PVC must be created manually before volume will be bound
+    # existingClaim:
+
+    ## rabbitmq data Persistent Volume Storage Class
+    ## If defined, storageClassName: <storageClass>
+    ## If set to "-", storageClassName: "", which disables dynamic provisioning
+    ## If undefined (the default) or set to null, no storageClassName spec is
+    ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+    ##   GKE, AWS & OpenStack)
+    
+    ####### PV #######
+    storageClass_files_pv: blob-files-pv-0
+    accessMode_files_pv: ReadWriteOnce
+    size_files_pv: 20Gi
+
+    storageClass_valid_data_pv: blob-valid-data-pv-0
+    accessMode_valid_data_pv: ReadWriteOnce
+    size_valid_data_pv: 30Gi
+
+    storageClass_tmp_pv: blob-tmp-pv-0
+    accessMode_tmp_pv: ReadWriteOnce
+    size_tmp_pv: 5Gi
+
+    storageClass_valid_log_pv: blob-valid-log-pv-0
+    accessMode_valid_log_pv: ReadWriteOnce
+    size_valid_log_pv: 3Gi
+
+    ####### PVC #######
+    storageClass_files_pvc: blob-files-pv-0
+    accessMode_files_pvc: ReadWriteOnce
+    size_files_pvc: 20Gi
+
+    storageClass_valid_data_pvc: blob-valid-data-pv-0
+    accessMode_valid_data_pvc: ReadWriteOnce
+    size_valid_data_pvc: 30Gi
+
+    storageClass_tmp_pvc: blob-tmp-pv-0
+    accessMode_tmp_pvc: ReadWriteOnce
+    size_tmp_pvc: 5Gi
+
+    storageClass_valid_log_pvc: blob-valid-log-pv-0
+    accessMode_valid_log_pvc: ReadWriteOnce
+    size_valid_log_pvc: 3Gi
+
+  # podAnnotations: {}
+
+  # podSecurityContext: {}
+  #   # fsGroup: 2000
+
+  # securityContext: {}
+  #   # capabilities:
+  #   #   drop:
+  #   #   - ALL
+  #   # readOnlyRootFilesystem: true
+  #   # runAsNonRoot: true
+  #   # runAsUser: 1000
+
+  postgres_service:
+    port: 5432
+
+  blobber_service:
+    type: NodePort
+    port: 3130
+
+  blobber_grpc_service:
+    type: NodePort
+    port: 3150
+
+  # resources: {}
+
+  # nodeSelector: {}
+
+  # tolerations: []
+
+  # affinity: {}
+
+validator:
+  replicaCount: 3
+
+  # image:
+  #   repository: 0chaindev/blobber
+  #   pullPolicy: IfNotPresent
+  #   tag: latest
+
+  # imagePullSecrets: []
+  # nameOverride: ""
+  # fullnameOverride: ""
+
+  # persistence:
+  #   enabled: false
+
+  #   ## A manually managed Persistent Volume and Claim
+  #   ## Requires persistence.enabled: true
+  #   ## If defined, PVC must be created manually before volume will be bound
+  #   # existingClaim:
+
+  #   ## rabbitmq data Persistent Volume Storage Class
+  #   ## If defined, storageClassName: <storageClass>
+  #   ## If set to "-", storageClassName: "", which disables dynamic provisioning
+  #   ## If undefined (the default) or set to null, no storageClassName spec is
+  #   ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
+  #   ##   GKE, AWS & OpenStack)
+  #   ##
+  #   # storageClass: "-"
+  #   accessMode: ReadWriteOnce
+  #   size: 20Gi
+
+  # podAnnotations: {}
+
+  # podSecurityContext: {}
+  #   # fsGroup: 2000
+
+  # securityContext: {}
+  #   # capabilities:
+  #   #   drop:
+  #   #   - ALL
+  #   # readOnlyRootFilesystem: true
+  #   # runAsNonRoot: true
+  #   # runAsUser: 1000
+
+  validator_service:
+    type: NodePort
+    port: 3140
+
+  # resources: {}
+
+  # nodeSelector: {}
+
+  # tolerations: []
+
+  # affinity: {}

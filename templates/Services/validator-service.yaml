@@ -1,0 +1,20 @@
+{{- $validatorCount := .Values.validator.replicaCount | int }}
+{{- $validatorCount := add $validatorCount 1 | int }}
+{{- range $i := untilStep 1 $validatorCount 1 }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: validator-0{{ $i }}
+  name: validator-0{{ $i }}
+spec:
+  ports:
+    - name: "{{ $.Values.validator.validator_service.port }}{{ $i }}"
+      port: {{ $.Values.validator.validator_service.port }}{{ $i }}
+      targetPort: {{ $.Values.validator.validator_service.port }}{{ $i }}
+  type: {{ $.Values.validator.validator_service.type }}
+  selector:
+    app: validator-0{{ $i }}
+
+{{- end }}
