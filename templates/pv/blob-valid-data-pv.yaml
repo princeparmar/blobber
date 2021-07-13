@@ -9,11 +9,11 @@ metadata:
   labels:
     tier: prod
 spec:
-  storageClassName: {{ $.Values.blobber.persistence.storageClass_valid_data }}{{ $i }}
+  storageClassName: {{ $.Values.blobber.persistence.storageClass_valid_data_pv }}{{ $i }}
   capacity: 
-    storage: {{ $.Values.blobber.persistence.size_valid_data }}
+    storage: {{ $.Values.blobber.persistence.size_valid_data_pv}}
   accessModes: 
-    - {{ $.Values.blobber.persistence.accessMode_valid_data }}
+    - {{ $.Values.blobber.persistence.accessMode_valid_data_pv }}
   hostPath:
     path: "/mnt/kubernetes/blob-valid-data-pv-0{{ $i }}"
 
