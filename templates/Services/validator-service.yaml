@@ -1,4 +1,4 @@
-{{- $validatorCount := .Values.validator.replicaCount | int }}
+{{- $validatorCount := .Values.validator.validatorCount | int }}
 {{- $validatorCount := add $validatorCount 1 | int }}
 {{- range $i := untilStep 1 $validatorCount 1 }}
 

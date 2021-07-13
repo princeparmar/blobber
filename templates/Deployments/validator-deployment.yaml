@@ -1,0 +1,99 @@
+{{- $validatorCount := .Values.validator.validatorCount | int }}
+{{- $validatorCount := add $validatorCount 1 | int }}
+{{- range $i := untilStep 1 $validatorCount 1 }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    app: validator-0{{ $i }}
+  name: validator-0{{ $i }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validator-0{{ $i }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: validator-0{{ $i }}
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - postgres-0{{ $i }}
+                      - blobber-0{{ $i }}
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - image: {{ $.Values.validator.image.repository }}:{{ $.Values.validator.image.tag }}
+          imagePullPolicy: Always
+          name: validator-0{{ $i }}
+          args:
+            - ./bin/validator
+            - --port
+            - "3140{{ $i }}"
+            - --hostname
+            - grpc.0chain.net
+            - --deployment_mode
+            - "0"
+            - --keys_file
+            - keysconfig/b0bnode0{{ $i }}_keys.txt
+            - --log_dir
+            - /blobber/log
+          env:
+            - name: DOCKER
+              value: " true"
+          ports:
+            - containerPort: 3140{{ $i }}
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi 
+          volumeMounts:
+            - mountPath: /blobber/keysconfig/b0bnode0{{ $i }}_keys.txt
+              name: blob-config-pvc
+              subPath: b0bnode0{{ $i }}_keys.txt
+            - mountPath: /blobber/data
+              name: blob-valid-data-pvc-0{{ $i }}
+            - mountPath: /blobber/log
+              name: blob-valid-log-pvc-0{{ $i }}
+            - mountPath: /blobber/config
+              name: blobber-config
+            - mountPath: /blobber/keysconfig/nodes.yaml
+              name: nodes-yaml-pvc
+              subPath: nodes.yaml
+      imagePullSecrets:
+        - name: regcred
+      restartPolicy: Always
+      volumes:
+        - name: blob-config-pvc
+          configMap:
+            name: b0bnode0{{ $i }}-keys
+            defaultMode: 0755
+        - name: nodes-yaml-pvc
+          configMap:
+            name: nodes
+            defaultMode: 0755
+        - name: blob-valid-data-pvc-0{{ $i }}
+          persistentVolumeClaim:
+            claimName: blob-valid-data-pvc-0{{ $i }}
+        - name: blob-valid-log-pvc-0{{ $i }}
+          persistentVolumeClaim:
+            claimName: blob-valid-log-pvc-0{{ $i }}
+        - name: blobber-config
+          configMap:
+            name: blobber-config
+            defaultMode: 0755
+
+{{- end }}

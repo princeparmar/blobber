@@ -8,19 +8,21 @@ serviceAccount:
   name: ""
 
 blobber:
-  replicaCount: 3
-
-  # image:
-  #   repository: 0chaindev/blobber
-  #   pullPolicy: IfNotPresent
-  #   tag: latest
+  blobberCount: 1
+  replicaCount: 1
+  namespace: grpc
+  host: grpc.0chain.net
+  image:
+    repository: 0chaindev/blobber
+    pullPolicy: Always
+    tag: latest
 
   # imagePullSecrets: []
   # nameOverride: ""
   # fullnameOverride: ""
 
   persistence:
-    enabled: false
+    # enabled: false
 
     ## A manually managed Persistent Volume and Claim
     ## Requires persistence.enabled: true
@@ -101,12 +103,12 @@ blobber:
   # affinity: {}
 
 validator:
-  replicaCount: 3
+  validatorCount: 1
 
-  # image:
-  #   repository: 0chaindev/blobber
-  #   pullPolicy: IfNotPresent
-  #   tag: latest
+  image:
+    repository: 0chaindev/validator
+    pullPolicy: Always
+    tag: latest
 
   # imagePullSecrets: []
   # nameOverride: ""

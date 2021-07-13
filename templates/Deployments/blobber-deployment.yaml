@@ -1,0 +1,143 @@
+{{- $blobberCount := .Values.blobber.blobberCount | int }}
+{{- $blobberCount := add $blobberCount 1 | int }}
+{{- range $i := untilStep 1 $blobberCount 1 }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    app: blobber-0{{ $i }}
+    tier: prod
+  name: blobber-0{{ $i }}
+spec:
+  replicas: {{ $.Values.blobber.replicaCount | int }}
+  selector:
+    matchLabels:
+      app: blobber-0{{ $i }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: blobber-0{{ $i }}
+        tier: prod
+    spec:
+      affinity:
+        podAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - postgres-0{{ $i }}
+                      - validator-0{{ $i }}
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - image: {{ $.Values.blobber.image.repository }}:{{ $.Values.blobber.image.tag }}
+          imagePullPolicy: {{ $.Values.blobber.image.pullPolicy }}
+          name: blobber-0{{ $i }}
+          args:
+            - ./bin/blobber
+            - --port
+            - "3130{{ $i }}"
+            - --grpc_port
+            - "3150{{ $i }}"
+            - --hostname
+            - grpc.0chain.net
+            - --deployment_mode
+            - "0"
+            - --keys_file
+            - keysconfig/b0bnode0{{ $i }}_keys.txt
+            - --files_dir
+            - /blobber/files
+            - --log_dir
+            - /blobber/log
+            - --db_dir
+            - /blobber/data
+            - --minio_file
+            - keysconfig/minio_config.txt
+          env:
+            - name: DOCKER
+              value: "true"
+            - name: DB_NAME
+              value: blobber_meta
+            - name: DB_USER
+              value: blobber_user
+            - name: DB_PASSWORD
+              value: blobber
+            - name: DB_HOST
+              value: postgres-0{{ $i }}
+            - name: DB_PORT
+              value: "5432"
+          ports:
+            - containerPort: 3130{{ $i }}
+            - containerPort: 3150{{ $i }}
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi 
+          volumeMounts:
+            - mountPath: /blobber/config
+              name: blobber-config
+            - mountPath: /blobber/files
+              name: blob-files-pvc-0{{ $i }}
+            - mountPath: /blobber/data
+              name: blob-valid-data-pvc-0{{ $i }}
+            - mountPath: /blobber/log
+              name: blob-valid-log-pvc-0{{ $i }}
+            - mountPath: /blobber/keysconfig/b0bnode0{{ $i }}_keys.txt
+              name: blob-config-pvc
+              subPath: b0bnode0{{ $i }}_keys.txt
+            - mountPath: /blobber/keysconfig/nodes.yaml
+              name: nodes-yaml-pvc
+              subPath: nodes.yaml
+            - mountPath: /blobber/keysconfig/minio_config.txt
+              name: minio-config-blobber
+              subPath: minio_config.txt
+            - mountPath: /blobber/sql
+              name: postgres-sql-pvc
+            - mountPath: /blobber/data/tmp
+              name: blob-tmp-pvc-0{{ $i }}
+      restartPolicy: Always
+      imagePullSecrets:
+        - name: regcred
+      volumes:
+        - name: minio-config-blobber
+          secret:
+            secretName: minio-config-blobber
+            defaultMode: 0755
+        - name: blob-config-pvc
+          configMap:
+            name: b0bnode0{{ $i }}-keys
+            defaultMode: 0755
+        - name: blob-tmp-pvc-0{{ $i }}
+          persistentVolumeClaim:
+            claimName: blob-tmp-pvc-0{{ $i }}
+        - name: nodes-yaml-pvc
+          configMap:
+            name: nodes
+            defaultMode: 0755
+        - name: blob-valid-data-pvc-0{{ $i }}
+          persistentVolumeClaim:
+            claimName: blob-valid-data-pvc-0{{ $i }}
+        - name: blob-valid-log-pvc-0{{ $i }}
+          persistentVolumeClaim:
+            claimName: blob-valid-log-pvc-0{{ $i }}
+        - name: blob-files-pvc-0{{ $i }}
+          persistentVolumeClaim:
+            claimName: blob-files-pvc-0{{ $i }}
+        - name: postgres-sql-pvc
+          configMap:
+            name: blobber-sql
+            defaultMode: 0755
+        - name: blobber-config
+          configMap:
+            name: blobber-config
+            defaultMode: 0755
+
+{{- end }}

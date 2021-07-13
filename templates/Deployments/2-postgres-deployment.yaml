@@ -1,0 +1,47 @@
+{{- $blobberCount := .Values.blobber.blobberCount | int }}
+{{- $blobberCount := add $blobberCount 1 | int }}
+{{- range $i := untilStep 1 $blobberCount 1 }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  labels:
+    app: postgres-0{{ $i }}
+  name: postgres-0{{ $i }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-0{{ $i }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: postgres-0{{ $i }}
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:11
+          resources:
+            limits:
+              cpu: 100m
+              memory: 100Mi
+            requests:
+              cpu: 50m
+              memory: 50Mi 
+          env:
+            - name: POSTGRES_HOST_AUTH_METHOD
+              value: trust
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              subPath: postgresql
+              name: blob-valid-data-pvc-0{{ $i }}
+      restartPolicy: Always
+      volumes:
+        - name: blob-valid-data-pvc-0{{ $i }}
+          persistentVolumeClaim:
+            claimName: blob-valid-data-pvc-0{{ $i }}
+
+{{- end }}
