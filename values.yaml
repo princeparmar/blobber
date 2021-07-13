@@ -22,7 +22,7 @@ blobber:
   # fullnameOverride: ""
 
   persistence:
-    # enabled: false
+    enabled: false
 
     ## A manually managed Persistent Volume and Claim
     ## Requires persistence.enabled: true

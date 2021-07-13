@@ -1,20 +1,20 @@
-# {{- $blobberCount := .Values.blobber.blobberCount | int }}
-# {{- $blobberCount := add $blobberCount 1 | int }}
-# {{- range $i := untilStep 1 $blobberCount 1 }}
+{{- $blobberCount := .Values.blobber.blobberCount | int }}
+{{- $blobberCount := add $blobberCount 1 | int }}
+{{- range $i := untilStep 1 $blobberCount 1 }}
 
-# apiVersion: v1
-# kind: PersistentVolume
-# metadata:
-#   name: blob-valid-log-pv-0{{ $i }}
-#   labels:
-#     tier: prod
-# spec:
-#   storageClassName: {{ $.Values.blobber.persistence.storageClass_valid_log_pv }}{{ $i }}
-#   capacity: 
-#     storage: {{ $.Values.blobber.persistence.size_valid_log_pv }}
-#   accessModes: 
-#     - {{ $.Values.blobber.persistence.accessMode_valid_log_pv }}
-#   hostPath:
-#     path: "/mnt/kubernetes/blob-valid-log-pv-0{{ $i }}""
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: blob-valid-log-pv-0{{ $i }}
+  labels:
+    tier: prod
+spec:
+  storageClassName: {{ $.Values.blobber.persistence.storageClass_valid_log_pv }}{{ $i }}
+  capacity: 
+    storage: {{ $.Values.blobber.persistence.size_valid_log_pv }}
+  accessModes: 
+    - {{ $.Values.blobber.persistence.accessMode_valid_log_pv }}
+  hostPath:
+    path: "/mnt/kubernetes/blob-valid-log-pv-0{{ $i }}"
 
-# {{- end }}
+{{- end }}
