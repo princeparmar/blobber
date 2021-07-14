@@ -1,7 +1,7 @@
 {{- $validatorCount := .Values.validator.validatorCount | int }}
 {{- $validatorCount := add $validatorCount 1 | int }}
 {{- range $i := untilStep 1 $validatorCount 1 }}
-
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -10,7 +10,7 @@ metadata:
     app: validator-0{{ $i }}
   name: validator-0{{ $i }}
 spec:
-  replicas: 1
+  replicas: {{ $.Values.validator.replicaCount | int }}
   selector:
     matchLabels:
       app: validator-0{{ $i }}

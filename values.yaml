@@ -104,6 +104,7 @@ blobber:
 
 validator:
   validatorCount: 1
+  replicaCount: 1
 
   image:
     repository: 0chaindev/validator

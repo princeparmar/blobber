@@ -1,7 +1,7 @@
 {{- $blobberCount := .Values.blobber.blobberCount | int }}
 {{- $blobberCount := add $blobberCount 1 | int }}
 {{- range $i := untilStep 1 $blobberCount 1 }}
-
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
