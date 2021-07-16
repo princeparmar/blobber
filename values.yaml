@@ -12,14 +12,88 @@ blobber:
   replicaCount: 1
   namespace: grpc
   host: grpc.0chain.net
-  image:
+
+  blobberImage:
     repository: 0chaindev/blobber
     pullPolicy: Always
     tag: latest
 
-  # imagePullSecrets: []
-  # nameOverride: ""
-  # fullnameOverride: ""
+  imagePullSecrets: 
+    - name: regcred
+
+  nameOverride: ""
+
+  fullnameOverride: ""
+
+  podAnnotations: {}
+
+  podSecurityContext: {}
+    # fsGroup: 2000
+
+  securityContext: {}
+    # capabilities:
+    #   drop:
+    #   - ALL
+    # readOnlyRootFilesystem: true
+    # runAsNonRoot: true
+    # runAsUser: 1000
+
+  blobberEnv:
+    DOCKER: "true"
+    DB_NAME: blobber_meta
+    DB_USER: blobber_user
+    DB_PASSWORD: blobber
+    DB_PORT: "5432"
+
+  blobberResources:
+    requests:
+      cpu: "50m"
+      memory: "50Mi"
+    limits:
+      cpu: "100m"
+      memory: "100Mi"
+
+  blobberService:
+    type: NodePort
+    port: 3130
+
+  blobberGrpcService:
+    type: NodePort
+    port: 3150
+
+  blobberJobImage:
+    repository: 0chaindev/stake
+    pullPolicy: Always
+    tag: latest
+
+  # nodeSelector: {}
+
+  # tolerations: []
+
+  # affinity: {}
+
+  postgresImage:
+    repository: postgres
+    tag: 11
+
+  postgresResources:
+    requests:
+      cpu: "50m"
+      memory: "50Mi"
+    limits:
+      cpu: "100m"
+      memory: "100Mi"
+
+  postgresEnv:
+    POSTGRES_HOST_AUTH_METHOD: trust
+
+  postgresJobEnv:
+    POSTGRES_HOST_AUTH_METHOD: trust
+    POSTGRES_PORT: "5432"
+    POSTGRES_USER: postgres
+
+  postgresService:
+    port: 5432
 
   persistence:
     enabled: false
@@ -70,50 +144,24 @@ blobber:
     accessMode_valid_log_pvc: ReadWriteOnce
     size_valid_log_pvc: 3Gi
 
-  # podAnnotations: {}
-
-  # podSecurityContext: {}
-  #   # fsGroup: 2000
-
-  # securityContext: {}
-  #   # capabilities:
-  #   #   drop:
-  #   #   - ALL
-  #   # readOnlyRootFilesystem: true
-  #   # runAsNonRoot: true
-  #   # runAsUser: 1000
-
-  postgres_service:
-    port: 5432
-
-  blobber_service:
-    type: NodePort
-    port: 3130
-
-  blobber_grpc_service:
-    type: NodePort
-    port: 3150
-
-  # resources: {}
-
-  # nodeSelector: {}
-
-  # tolerations: []
-
-  # affinity: {}
-
 validator:
   validatorCount: 1
   replicaCount: 1
 
-  image:
+  validatorImage:
     repository: 0chaindev/validator
     pullPolicy: Always
     tag: latest
 
-  # imagePullSecrets: []
-  # nameOverride: ""
-  # fullnameOverride: ""
+  imagePullSecrets: 
+    - name: regcred
+
+  nameOverride: ""
+
+  fullnameOverride: ""
+
+  validatorEnv:
+    DOCKER: "true"
 
   # persistence:
   #   enabled: false
@@ -150,6 +198,14 @@ validator:
   validator_service:
     type: NodePort
     port: 3140
+
+  validatorResources:
+    requests:
+      cpu: "50m"
+      memory: "50Mi"
+    limits:
+      cpu: "100m"
+      memory: "100Mi"
 
   # resources: {}
 

@@ -6,16 +6,15 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: blobber-0{{ $i }}
-    tier: prod
-  name: blobbergrpc-0{{ $i }}
+    {{- include "0helm-blobber.labels" $ | nindent 4 }}-blobber-0{{ $i }}
+  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-blobbergrpc-0{{ $i }}
 spec:
   ports:
-    - name: "{{ $.Values.blobber.blobber_grpc_service.port }}{{ $i }}"
-      port: {{ $.Values.blobber.blobber_grpc_service.port }}{{ $i }}
-      targetPort: {{ $.Values.blobber.blobber_grpc_service.port }}{{ $i }}
-  type: {{ $.Values.blobber.blobber_service.type }}
+    - name: "{{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}"
+      port: {{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}
+      targetPort: {{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}
+  type: {{ $.Values.blobber.blobberGrpcService.type }}
   selector:
-    app: blobber-0{{ $i }}
+    {{- include "0helm-blobber.selectorLabels" $ | nindent 6 }}-blobber-0{{ $i }}
 
 {{- end }}

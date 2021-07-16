@@ -6,8 +6,8 @@ apiVersion: v1
 kind: Service
 metadata:
   labels:
-    app: validator-0{{ $i }}
-  name: validator-0{{ $i }}
+    {{- include "0helm-blobber.labels" $ | nindent 4 }}-validator-0{{ $i }}
+  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-validator-0{{ $i }}
 spec:
   ports:
     - name: "{{ $.Values.validator.validator_service.port }}{{ $i }}"
@@ -15,6 +15,6 @@ spec:
       targetPort: {{ $.Values.validator.validator_service.port }}{{ $i }}
   type: {{ $.Values.validator.validator_service.type }}
   selector:
-    app: validator-0{{ $i }}
+    {{- include "0helm-blobber.selectorLabels" $ | nindent 6 }}-validator-0{{ $i }}
 
 {{- end }}

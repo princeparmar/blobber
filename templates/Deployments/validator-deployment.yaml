@@ -7,41 +7,41 @@ kind: Deployment
 metadata:
   annotations:
   labels:
-    app: validator-0{{ $i }}
-  name: validator-0{{ $i }}
+    {{- include "0helm-blobber.labels" $ | nindent 6 }}-validator-0{{ $i }}
+  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-validator-0{{ $i }}
 spec:
   replicas: {{ $.Values.validator.replicaCount | int }}
   selector:
     matchLabels:
-      app: validator-0{{ $i }}
+      {{- include "0helm-blobber.selectorLabels" $ | nindent 6 }}-validator-0{{ $i }}
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: validator-0{{ $i }}
+        {{- include "0helm-blobber.labels" $ | nindent 8 }}-validator-0{{ $i }}
     spec:
       affinity:
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchExpressions:
-                  - key: app
+                  - key: app.kubernetes.io/instance
                     operator: In
                     values:
-                      - postgres-0{{ $i }}
-                      - blobber-0{{ $i }}
+                      - {{ $.Release.Name }}-postgres-0{{ $i }}
+                      - {{ $.Release.Name }}-blobber-0{{ $i }}
               topologyKey: "kubernetes.io/hostname"
       containers:
-        - image: {{ $.Values.validator.image.repository }}:{{ $.Values.validator.image.tag }}
+        - image: {{ $.Values.validator.validatorImage.repository }}:{{ $.Values.validator.validatorImage.tag }}
           imagePullPolicy: Always
-          name: validator-0{{ $i }}
+          name: {{ $.Release.Name }}-validator-0{{ $i }}
           args:
             - ./bin/validator
             - --port
             - "3140{{ $i }}"
             - --hostname
-            - grpc.0chain.net
+            - {{ $.Values.blobber.host }}
             - --deployment_mode
             - "0"
             - --keys_file
@@ -49,17 +49,14 @@ spec:
             - --log_dir
             - /blobber/log
           env:
-            - name: DOCKER
-              value: " true"
+            {{- range $key, $value := $.Values.validator.validatorEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
           ports:
             - containerPort: 3140{{ $i }}
           resources:
-            limits:
-              cpu: 100m
-              memory: 100Mi
-            requests:
-              cpu: 50m
-              memory: 50Mi 
+            {{- toYaml $.Values.validator.validatorResources | nindent 12 }}
           volumeMounts:
             - mountPath: /blobber/keysconfig/b0bnode0{{ $i }}_keys.txt
               name: blob-config-pvc
@@ -73,8 +70,10 @@ spec:
             - mountPath: /blobber/keysconfig/nodes.yaml
               name: nodes-yaml-pvc
               subPath: nodes.yaml
+      {{- with $.Values.validator.imagePullSecrets }}
       imagePullSecrets:
-        - name: regcred
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       restartPolicy: Always
       volumes:
         - name: blob-config-pvc

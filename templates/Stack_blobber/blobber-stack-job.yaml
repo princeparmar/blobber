@@ -2,16 +2,16 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    app: blobber-stack
-  name: blobber-stack
+    {{- include "0helm-blobber.labels" $ | nindent 6 }}-blobber-stack
+  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-blobber-stack
 spec:
   backoffLimit: 10
   template:
     spec:
       containers:
-        - name: blobber-stack
-          imagePullPolicy: Always
-          image: 0chaindev/stake:latest
+        - name: {{ $.Release.Name }}-blobber-stack
+          image: {{ $.Values.blobber.blobberJobImage.repository }}:{{ $.Values.blobber.blobberJobImage.tag }}
+          imagePullPolicy: {{ $.Values.blobber.blobberJobImage.pullPolicy }}
           args:
             - bash
             - -c
@@ -22,8 +22,10 @@ spec:
               name: delegate-wallet-json
               subPath: {{ $.Values.blobber.namespace }}_blob_keys.json
       restartPolicy: Never
+      {{- with $.Values.blobber.imagePullSecrets }}
       imagePullSecrets:
-        - name: regcred
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: delegate-wallet-json
           configMap:

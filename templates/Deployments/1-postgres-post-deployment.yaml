@@ -6,33 +6,26 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    app: postgres-post-0{{ $i }}
-  name: postgres-post-0{{ $i }}
+    {{- include "0helm-blobber.labels" $ | nindent 6 }}-postgres-post-0{{ $i }}
+  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-postgres-post-0{{ $i }}
 spec:
   template:
     spec:
       containers:
-        - name: postgres
-          image: postgres:11
+        - name: {{ $.Release.Name }}-postgres
+          image: {{ $.Values.blobber.postgresImage.repository }}:{{ $.Values.blobber.postgresImage.tag }}
           resources:
-            limits:
-              cpu: 100m
-              memory: 100Mi
-            requests:
-              cpu: 50m
-              memory: 50Mi 
+            {{- toYaml $.Values.blobber.postgresResources | nindent 12 }}
           args:
             - bash
             - /blobber/bin/postgres-entrypoint.sh
           env:
+            {{- range $key, $value := $.Values.blobber.postgresJobEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}        
+            {{- end }}
             - name: POSTGRES_HOST
               value: postgres-0{{ $i }}
-            - name: POSTGRES_PORT
-              value: "5432"
-            - name: POSTGRES_USER
-              value: postgres
-            - name: POSTGRES_HOST_AUTH_METHOD
-              value: trust
           volumeMounts:
             - mountPath: /blobber/bin
               name: postgres-bin-pvc

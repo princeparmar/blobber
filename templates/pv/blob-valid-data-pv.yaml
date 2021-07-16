@@ -7,7 +7,7 @@ kind: PersistentVolume
 metadata:
   name: blob-valid-data-pv-0{{ $i }}
   labels:
-    tier: prod
+    {{- include "0helm-blobber.labels" $ | nindent 6 }}-blob-valid-data-pv-0{{ $i }}
 spec:
   storageClassName: {{ $.Values.blobber.persistence.storageClass_valid_data_pv }}{{ $i }}
   capacity: 

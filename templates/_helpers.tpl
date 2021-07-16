@@ -35,11 +35,12 @@ Common labels
 */}}
 {{- define "0helm-blobber.labels" -}}
 helm.sh/chart: {{ include "0helm-blobber.chart" . }}
-{{ include "0helm-blobber.selectorLabels" . }}
+app.kubernetes.io/name: {{ include "0helm-blobber.name" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
+app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*

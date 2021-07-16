@@ -7,33 +7,30 @@ kind: Deployment
 metadata:
   annotations:
   labels:
-    app: postgres-0{{ $i }}
-  name: postgres-0{{ $i }}
+    {{- include "0helm-blobber.labels" $ | nindent 6 }}-postgres-0{{ $i }}
+  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-postgres-0{{ $i }}
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: postgres-0{{ $i }}
+      {{- include "0helm-blobber.selectorLabels" $ | nindent 6 }}-postgres-0{{ $i }}
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: postgres-0{{ $i }}
+        {{- include "0helm-blobber.labels" $ | nindent 8 }}-postgres-0{{ $i }}
     spec:
       containers:
-        - name: postgres
-          image: postgres:11
+        - name: {{ $.Release.Name }}-postgres
+          image: {{ $.Values.blobber.postgresImage.repository }}:{{ $.Values.blobber.postgresImage.tag }}
           resources:
-            limits:
-              cpu: 100m
-              memory: 100Mi
-            requests:
-              cpu: 50m
-              memory: 50Mi 
+            {{- toYaml $.Values.blobber.postgresResources | nindent 12 }}
           env:
-            - name: POSTGRES_HOST_AUTH_METHOD
-              value: trust
+            {{- range $key, $value := $.Values.blobber.postgresEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}        
+            {{- end }}
           volumeMounts:
             - mountPath: /var/lib/postgresql/data
               subPath: postgresql

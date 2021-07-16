@@ -7,37 +7,35 @@ kind: Deployment
 metadata:
   annotations:
   labels:
-    app: blobber-0{{ $i }}
-    tier: prod
-  name: blobber-0{{ $i }}
+    {{- include "0helm-blobber.labels" $ | nindent 6 }}-blobber-0{{ $i }}
+  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-blobber-0{{ $i }}
 spec:
   replicas: {{ $.Values.blobber.replicaCount | int }}
   selector:
     matchLabels:
-      app: blobber-0{{ $i }}
+      {{- include "0helm-blobber.selectorLabels" $ | nindent 6 }}-blobber-0{{ $i }}
   strategy:
     type: Recreate
   template:
     metadata:
       labels:
-        app: blobber-0{{ $i }}
-        tier: prod
+        {{- include "0helm-blobber.labels" $ | nindent 8 }}-blobber-0{{ $i }}
     spec:
       affinity:
         podAffinity:
           requiredDuringSchedulingIgnoredDuringExecution:
             - labelSelector:
                 matchExpressions:
-                  - key: app
+                  - key: app.kubernetes.io/instance
                     operator: In
                     values:
-                      - postgres-0{{ $i }}
-                      - validator-0{{ $i }}
+                      - {{ $.Release.Name }}-postgres-0{{ $i }}
+                      - {{ $.Release.Name }}-validator-0{{ $i }}
               topologyKey: "kubernetes.io/hostname"
       containers:
-        - image: {{ $.Values.blobber.image.repository }}:{{ $.Values.blobber.image.tag }}
-          imagePullPolicy: {{ $.Values.blobber.image.pullPolicy }}
-          name: blobber-0{{ $i }}
+        - image: {{ $.Values.blobber.blobberImage.repository }}:{{ $.Values.blobber.blobberImage.tag }}
+          imagePullPolicy: {{ $.Values.blobber.blobberImage.pullPolicy }}
+          name: {{ $.Release.Name }}-blobber-0{{ $i }}
           args:
             - ./bin/blobber
             - --port
@@ -45,7 +43,7 @@ spec:
             - --grpc_port
             - "3150{{ $i }}"
             - --hostname
-            - grpc.0chain.net
+            - {{ $.Values.blobber.host }}
             - --deployment_mode
             - "0"
             - --keys_file
@@ -59,28 +57,17 @@ spec:
             - --minio_file
             - keysconfig/minio_config.txt
           env:
-            - name: DOCKER
-              value: "true"
-            - name: DB_NAME
-              value: blobber_meta
-            - name: DB_USER
-              value: blobber_user
-            - name: DB_PASSWORD
-              value: blobber
             - name: DB_HOST
-              value: postgres-0{{ $i }}
-            - name: DB_PORT
-              value: "5432"
+              value: "postgres-0{{ $i }}"
+            {{- range $key, $value := $.Values.blobber.blobberEnv }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
           ports:
             - containerPort: 3130{{ $i }}
             - containerPort: 3150{{ $i }}
           resources:
-            limits:
-              cpu: 100m
-              memory: 100Mi
-            requests:
-              cpu: 50m
-              memory: 50Mi 
+            {{- toYaml $.Values.blobber.blobberResources | nindent 12 }}
           volumeMounts:
             - mountPath: /blobber/config
               name: blobber-config
@@ -104,8 +91,10 @@ spec:
             - mountPath: /blobber/data/tmp
               name: blob-tmp-pvc-0{{ $i }}
       restartPolicy: Always
+      {{- with $.Values.blobber.imagePullSecrets }}
       imagePullSecrets:
-        - name: regcred
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
       volumes:
         - name: minio-config-blobber
           secret:
