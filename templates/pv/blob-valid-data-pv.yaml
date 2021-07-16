@@ -15,6 +15,6 @@ spec:
   accessModes: 
     - {{ $.Values.blobber.persistence.accessMode_valid_data_pv }}
   hostPath:
-    path: "/mnt/kubernetespv/blob-valid-data-pv-0{{ $i }}"
+    path: "{{ $.Values.blobber.persistence.pvHostPath }}{{ $.Values.blobber.persistence.storageClass_valid_data_pv }}{{ $i }}"
 
 {{- end }}

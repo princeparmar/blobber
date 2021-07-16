@@ -117,6 +117,9 @@ blobber:
     ##   set, choosing the default provisioner.  (gp2 on AWS, standard on
     ##   GKE, AWS & OpenStack)
     
+    ######### PV HostPath ###########
+    pvHostPath: "/mnt/kubernetes/"
+    
     ####### PV #######
     storageClass_files_pv: blob-files-pv-0
     accessMode_files_pv: ReadWriteOnce
