@@ -10,10 +10,10 @@ metadata:
   name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-validator-0{{ $i }}
 spec:
   ports:
-    - name: "{{ $.Values.validator.validator_service.port }}{{ $i }}"
-      port: {{ $.Values.validator.validator_service.port }}{{ $i }}
-      targetPort: {{ $.Values.validator.validator_service.port }}{{ $i }}
-  type: {{ $.Values.validator.validator_service.type }}
+    - name: "{{ $.Values.validator.validatorService.port }}{{ $i }}"
+      port: {{ $.Values.validator.validatorService.port }}{{ $i }}
+      targetPort: {{ $.Values.validator.validatorService.port }}{{ $i }}
+  type: {{ $.Values.validator.validatorService.type }}
   selector:
     {{- include "0helm-blobber.selectorLabels" $ | nindent 6 }}-validator-0{{ $i }}
 

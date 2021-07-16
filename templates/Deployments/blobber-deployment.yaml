@@ -39,9 +39,9 @@ spec:
           args:
             - ./bin/blobber
             - --port
-            - "3130{{ $i }}"
+            - "{{ $.Values.blobber.blobberService.port }}{{ $i }}"
             - --grpc_port
-            - "3150{{ $i }}"
+            - "{{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}"
             - --hostname
             - {{ $.Values.blobber.host }}
             - --deployment_mode
@@ -58,14 +58,14 @@ spec:
             - keysconfig/minio_config.txt
           env:
             - name: DB_HOST
-              value: "postgres-0{{ $i }}"
+              value: {{ $.Release.Name }}-postgres-0{{ $i }}
             {{- range $key, $value := $.Values.blobber.blobberEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}
             {{- end }}
           ports:
-            - containerPort: 3130{{ $i }}
-            - containerPort: 3150{{ $i }}
+            - containerPort: {{ $.Values.blobber.blobberService.port }}{{ $i }}
+            - containerPort: {{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}
           resources:
             {{- toYaml $.Values.blobber.blobberResources | nindent 12 }}
           volumeMounts:

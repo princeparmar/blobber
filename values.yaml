@@ -13,6 +13,13 @@ blobber:
   namespace: grpc
   host: grpc.0chain.net
 
+  minioConfig:
+    bucketUrl: 
+    accessKeyId:
+    secretAccessKey:
+    bucketName:
+    bucketRegion:
+
   blobberImage:
     repository: 0chaindev/blobber
     pullPolicy: Always
@@ -195,7 +202,7 @@ validator:
   #   # runAsNonRoot: true
   #   # runAsUser: 1000
 
-  validator_service:
+  validatorService:
     type: NodePort
     port: 3140
 

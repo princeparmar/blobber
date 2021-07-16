@@ -15,6 +15,6 @@ spec:
   accessModes:
     - {{ $.Values.blobber.persistence.accessMode_tmp_pv }}
   hostPath:
-    path: "/mnt/kubernetes/blob-tmp-pv-0{{ $i }}"
+    path: "/mnt/kubernetespv/blob-tmp-pv-0{{ $i }}"
 
 {{- end }}

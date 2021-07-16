@@ -15,6 +15,6 @@ spec:
   accessModes: 
     - {{ $.Values.blobber.persistence.accessMode_valid_log_pv }}
   hostPath:
-    path: "/mnt/kubernetes/blob-valid-log-pv-0{{ $i }}"
+    path: "/mnt/kubernetespv/blob-valid-log-pv-0{{ $i }}"
 
 {{- end }}

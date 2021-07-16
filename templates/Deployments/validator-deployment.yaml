@@ -39,7 +39,7 @@ spec:
           args:
             - ./bin/validator
             - --port
-            - "3140{{ $i }}"
+            - "{{ $.Values.validator.validatorService.port }}{{ $i }}"
             - --hostname
             - {{ $.Values.blobber.host }}
             - --deployment_mode
@@ -54,7 +54,7 @@ spec:
               value: {{ $value | quote }}
             {{- end }}
           ports:
-            - containerPort: 3140{{ $i }}
+            - containerPort: {{ $.Values.validator.validatorService.port }}{{ $i }}
           resources:
             {{- toYaml $.Values.validator.validatorResources | nindent 12 }}
           volumeMounts:

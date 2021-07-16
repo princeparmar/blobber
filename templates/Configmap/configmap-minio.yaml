@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: minio-config-blobber
+stringData:
+  minio_config.txt: |-
+    {{- $.Values.blobber.minioConfig.bucketUrl }}
+    {{- $.Values.blobber.minioConfig.accessKeyId }}
+    {{- $.Values.blobber.minioConfig.secretAccessKey }}
+    {{- $.Values.blobber.minioConfig.bucketName }}
+    {{- $.Values.blobber.minioConfig.bucketRegion }}
