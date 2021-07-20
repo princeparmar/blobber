@@ -96,11 +96,11 @@ data:
       longitude: 0
     minio:
       # Enable or disable minio backup service
-      start: true
+      start: false
       # The frequency at which the worker should look for files, Ex: 3600 means it will run every 3600 seconds
       worker_frequency: 1800 # In Seconds
       # Use SSL for connection or not
-      use_ssl: true
+      use_ssl: false
 
     cold_storage:
       # Minimum file size to be considered for moving to cloud

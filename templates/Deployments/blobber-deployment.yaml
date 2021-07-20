@@ -58,7 +58,7 @@ spec:
             - keysconfig/minio_config.txt
           env:
             - name: DB_HOST
-              value: {{ $.Release.Name }}-postgres-0{{ $i }}
+              value: {{ include "0helm-blobber.fullname" $ | nindent 15 }}-postgres-0{{ $i }}
             {{- range $key, $value := $.Values.blobber.blobberEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}

@@ -12,6 +12,7 @@ spec:
   ports:
     - name: "{{ $.Values.blobber.blobberService.port }}{{ $i }}" 
       port: {{ $.Values.blobber.blobberService.port }}{{ $i }}
+      nodePort: {{ $.Values.blobber.blobberService.nodePort }}{{ $i }}
       targetPort: {{ $.Values.blobber.blobberService.port }}{{ $i }}
   type: {{ $.Values.blobber.blobberService.type }}
   selector:

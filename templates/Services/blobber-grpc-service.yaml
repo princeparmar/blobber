@@ -12,6 +12,7 @@ spec:
   ports:
     - name: "{{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}"
       port: {{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}
+      nodePort: {{ $.Values.blobber.blobberGrpcService.nodePort }}{{ $i }}
       targetPort: {{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}
   type: {{ $.Values.blobber.blobberGrpcService.type }}
   selector:

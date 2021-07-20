@@ -25,7 +25,7 @@ spec:
               value: {{ $value | quote }}        
             {{- end }}
             - name: POSTGRES_HOST
-              value: {{ $.Release.Name }}-postgres-0{{ $i }}
+              value: {{ include "0helm-blobber.fullname" $ | nindent 15 }}-postgres-0{{ $i }}
           volumeMounts:
             - mountPath: /blobber/bin
               name: postgres-bin-pvc

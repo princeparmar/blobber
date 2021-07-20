@@ -12,6 +12,7 @@ spec:
   ports:
     - name: "{{ $.Values.validator.validatorService.port }}{{ $i }}"
       port: {{ $.Values.validator.validatorService.port }}{{ $i }}
+      nodePort: {{ $.Values.validator.validatorService.nodePort }}{{ $i }}
       targetPort: {{ $.Values.validator.validatorService.port }}{{ $i }}
   type: {{ $.Values.validator.validatorService.type }}
   selector:

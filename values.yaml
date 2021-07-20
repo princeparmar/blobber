@@ -8,22 +8,22 @@ serviceAccount:
   name: ""
 
 blobber:
-  blobberCount: 1
+  blobberCount: 6
   replicaCount: 1
   namespace: grpc
-  host: grpc.0chain.net
+  host: helm.0chain.net
 
   minioConfig:
     bucketUrl: 
-    accessKeyId:
-    secretAccessKey:
-    bucketName:
-    bucketRegion:
+    accessKeyId: 
+    secretAccessKey: 
+    bucketName: 
+    bucketRegion: 
 
   blobberImage:
     repository: 0chaindev/blobber
-    pullPolicy: Always
-    tag: latest
+    pullPolicy: IfNotPresent
+    tag: master-ea1328f4
 
   imagePullSecrets: 
     - name: regcred
@@ -63,10 +63,12 @@ blobber:
   blobberService:
     type: NodePort
     port: 3130
+    nodePort: 3130
 
   blobberGrpcService:
     type: NodePort
     port: 3150
+    nodePort: 3150
 
   blobberJobImage:
     repository: 0chaindev/stake
@@ -155,13 +157,13 @@ blobber:
     size_valid_log_pvc: 3Gi
 
 validator:
-  validatorCount: 1
+  validatorCount: 6
   replicaCount: 1
 
   validatorImage:
     repository: 0chaindev/validator
-    pullPolicy: Always
-    tag: latest
+    pullPolicy: IfNotPresent
+    tag: master-ea1328f4
 
   imagePullSecrets: 
     - name: regcred
@@ -208,6 +210,7 @@ validator:
   validatorService:
     type: NodePort
     port: 3140
+    nodePort: 3140
 
   validatorResources:
     requests:
