@@ -2,8 +2,8 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    {{- include "0helm-blobber.labels" $ | nindent 6 }}-blobber-stack
-  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-blobber-stack
+    {{- include "0helm.labels" $ | nindent 6 }}-blobber-stack
+  name: {{ include "0helm.fullname" $ | nindent 4 }}-blobber-stack
 spec:
   backoffLimit: 10
   template:

@@ -14,11 +14,11 @@ blobber:
   host: helm.0chain.net
 
   minioConfig:
-    bucketUrl: 
-    accessKeyId: 
-    secretAccessKey: 
-    bucketName: 
-    bucketRegion: 
+    bucketUrl: asascad
+    accessKeyId: ascasc
+    secretAccessKey: asdcasc
+    bucketName: sdacvasd
+    bucketRegion: sadvad
 
   blobberImage:
     repository: 0chaindev/blobber

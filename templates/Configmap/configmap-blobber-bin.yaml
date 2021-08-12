@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  labels:
+    {{- include "0helm.labels" $ | nindent 4 }}-blobber-bin
   creationTimestamp: null
   name: blobber-bin
 data:
@@ -11,3 +13,4 @@ data:
     \"$0: running $f\"; \"${psql[@]}\" -f \"$f\"; echo ;;\n\t\t*.sql.gz) echo \"$0:
     running $f\"; gunzip -c \"$f\" | \"${psql[@]}\"; echo ;;\n\t\t*)        echo \"$0:
     ignoring $f\" ;;\n\tesac\n\techo\ndone"
+    

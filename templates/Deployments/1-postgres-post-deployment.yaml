@@ -6,8 +6,8 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   labels:
-    {{- include "0helm-blobber.labels" $ | nindent 6 }}-postgres-post-0{{ $i }}
-  name: {{ include "0helm-blobber.fullname" $ | nindent 4 }}-postgres-post-0{{ $i }}
+    {{- include "0helm.labels" $ | nindent 6 }}-postgres-post-0{{ $i }}
+  name: {{ include "0helm.fullname" $ | nindent 4 }}-postgres-post-0{{ $i }}
 spec:
   template:
     spec:
@@ -25,7 +25,7 @@ spec:
               value: {{ $value | quote }}        
             {{- end }}
             - name: POSTGRES_HOST
-              value: {{ include "0helm-blobber.fullname" $ | nindent 15 }}-postgres-0{{ $i }}
+              value: {{ include "0helm.fullname" $ | nindent 15 }}-postgres-0{{ $i }}
           volumeMounts:
             - mountPath: /blobber/bin
               name: postgres-bin-pvc

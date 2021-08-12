@@ -7,7 +7,7 @@ kind: PersistentVolumeClaim
 metadata:
   name: blob-valid-data-pvc-0{{ $i }}
   labels:
-    {{- include "0helm-blobber.labels" $ | nindent 6 }}-blob-valid-data-pvc-0{{ $i }}
+    {{- include "0helm.labels" $ | nindent 6 }}-blob-valid-data-pvc-0{{ $i }}
 spec:
   storageClassName: {{ $.Values.blobber.persistence.storageClass_valid_data_pvc }}{{ $i }}
   resources:

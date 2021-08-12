@@ -1,6 +1,8 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
+  labels:
+    {{- include "0helm.labels" $ | nindent 4 }}-blobber-config
   creationTimestamp: null
   name: blobber-config
 data:
@@ -48,7 +50,7 @@ data:
     update_allocations_interval: 1m
 
     # delegate wallet (must be set)
-    delegate_wallet: '638768c5a2c422c2ac099b8fc429cd447ac3bb53b5798323c14c871e41c20923'
+    delegate_wallet: 'b7ebf17502288c0ef27edc52423372aab12b595f0aeb55f3960a3bbc6c47a574'
     # min stake allowed, tokens
     min_stake: 1.0
     # max stake allowed, tokens
@@ -127,7 +129,7 @@ data:
     version: 1.0
 
     # delegate wallet (must be set)
-    delegate_wallet: '638768c5a2c422c2ac099b8fc429cd447ac3bb53b5798323c14c871e41c20923'
+    delegate_wallet: 'b7ebf17502288c0ef27edc52423372aab12b595f0aeb55f3960a3bbc6c47a574'
     # min stake allowed, tokens
     min_stake: 1.0
     # max stake allowed, tokens
@@ -153,3 +155,4 @@ data:
       network:
         relay_time: 100 # milliseconds
       signature_scheme: "bls0chain"
+      
