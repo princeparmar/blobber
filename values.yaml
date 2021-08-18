@@ -10,8 +10,9 @@ serviceAccount:
 blobber:
   blobberCount: 6
   replicaCount: 1
-  namespace: grpc
-  host: helm.0chain.net
+
+  # namespace: helm
+  host: 0chain.net
 
   minioConfig:
     bucketUrl: asascad
@@ -20,10 +21,15 @@ blobber:
     bucketName: sdacvasd
     bucketRegion: sadvad
 
+  blobberConfig:
+    minio:
+      start: "false"
+      useSsl: "false"
+
   blobberImage:
     repository: 0chaindev/blobber
-    pullPolicy: IfNotPresent
-    tag: master-ea1328f4
+    pullPolicy: Always
+    tag: latest
 
   imagePullSecrets: 
     - name: regcred
@@ -162,8 +168,8 @@ validator:
 
   validatorImage:
     repository: 0chaindev/validator
-    pullPolicy: IfNotPresent
-    tag: master-ea1328f4
+    pullPolicy: Always
+    tag: latest
 
   imagePullSecrets: 
     - name: regcred

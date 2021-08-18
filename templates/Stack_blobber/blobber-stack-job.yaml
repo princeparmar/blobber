@@ -3,7 +3,7 @@ kind: Job
 metadata:
   labels:
     {{- include "0helm.labels" $ | nindent 6 }}-blobber-stack
-  name: {{ include "0helm.fullname" $ | nindent 4 }}-blobber-stack
+  name: {{ $.Chart.Name }}-blobber-stack
 spec:
   backoffLimit: 10
   template:
@@ -16,11 +16,11 @@ spec:
             - bash
             - -c
             # - "date; echo sleeping....; sleep 300s;"
-            - "./stake_blobbers --wallet_file '{{ $.Values.blobber.namespace }}_blob_keys.json' --block_worker '{{ $.Values.blobber.host }}' --tokens 2 --total_blobbers {{ $.Values.blobber.blobberCount | int }}"
+            - "./stake_blobbers --wallet_file '{{ $.Release.Namespace }}_blob_keys.json' --block_worker 'http://{{ $.Release.Namespace }}.{{ $.Values.blobber.host }}/{{ $.Chart.Name }}-0dns' --tokens 2 --total_blobbers {{ $.Values.blobber.blobberCount | int }}"
           volumeMounts:
-            - mountPath: /0chain/go/src/magicBlock/{{ $.Values.blobber.namespace }}_blob_keys.json
+            - mountPath: /0chain/go/src/magicBlock/{{ $.Release.Namespace }}_blob_keys.json
               name: delegate-wallet-json
-              subPath: {{ $.Values.blobber.namespace }}_blob_keys.json
+              subPath: {{ $.Release.Namespace }}_blob_keys.json
       restartPolicy: Never
       {{- with $.Values.blobber.imagePullSecrets }}
       imagePullSecrets:

@@ -8,7 +8,7 @@ metadata:
   annotations:
   labels:
     {{- include "0helm.labels" $ | nindent 6 }}-validator-0{{ $i }}
-  name: {{ include "0helm.fullname" $ | nindent 4 }}-validator-0{{ $i }}
+  name: {{ $.Chart.Name }}-validator-0{{ $i }}
 spec:
   replicas: {{ $.Values.validator.replicaCount | int }}
   selector:
@@ -41,7 +41,7 @@ spec:
             - --port
             - "{{ $.Values.validator.validatorService.port }}{{ $i }}"
             - --hostname
-            - {{ $.Values.blobber.host }}
+            - {{ $.Release.Namespace }}.{{ $.Values.blobber.host }}
             - --deployment_mode
             - "0"
             - --keys_file

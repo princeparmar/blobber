@@ -8,7 +8,7 @@ metadata:
   annotations:
   labels:
     {{- include "0helm.labels" $ | nindent 6 }}-blobber-0{{ $i }}
-  name: {{ include "0helm.fullname" $ | nindent 4 }}-blobber-0{{ $i }}
+  name: {{ $.Chart.Name }}-blobber-0{{ $i }}
 spec:
   replicas: {{ $.Values.blobber.replicaCount | int }}
   selector:
@@ -43,7 +43,7 @@ spec:
             - --grpc_port
             - "{{ $.Values.blobber.blobberGrpcService.port }}{{ $i }}"
             - --hostname
-            - {{ $.Values.blobber.host }}
+            - {{ $.Release.Namespace }}.{{ $.Values.blobber.host }}
             - --deployment_mode
             - "0"
             - --keys_file
@@ -58,7 +58,7 @@ spec:
             - keysconfig/minio_config.txt
           env:
             - name: DB_HOST
-              value: {{ include "0helm.fullname" $ | nindent 15 }}-postgres-0{{ $i }}
+              value: {{ $.Chart.Name }}-postgres-0{{ $i }}
             {{- range $key, $value := $.Values.blobber.blobberEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}

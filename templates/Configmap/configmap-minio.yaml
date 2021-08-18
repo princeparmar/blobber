@@ -4,7 +4,7 @@ metadata:
   labels:
     {{- include "0helm.labels" $ | nindent 4 }}-minio-config-blobber
   creationTimestamp: null
-  name: minio-config-blobber
+  name: minio-config-blobber1
 stringData:
   minio_config.txt: |-
     {{- $.Values.blobber.minioConfig.bucketUrl | nindent 4 }}

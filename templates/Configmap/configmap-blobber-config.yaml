@@ -60,7 +60,7 @@ data:
     # service charge of the blobber
     service_charge: 0.30
 
-    block_worker: http://dns
+    block_worker: http://{{ $.Chart.Name }}-0dns
     handlers:
       rate_limit: 10 # 10 per second
 
@@ -98,11 +98,11 @@ data:
       longitude: 0
     minio:
       # Enable or disable minio backup service
-      start: false
+      start: {{ $.Values.blobber.blobberConfig.minio.start }}
       # The frequency at which the worker should look for files, Ex: 3600 means it will run every 3600 seconds
       worker_frequency: 1800 # In Seconds
       # Use SSL for connection or not
-      use_ssl: false
+      use_ssl: {{ $.Values.blobber.blobberConfig.minio.useSsl }}
 
     cold_storage:
       # Minimum file size to be considered for moving to cloud
@@ -139,7 +139,7 @@ data:
     # service charge of related blobber
     service_charge: 0.30
 
-    block_worker: http://dns
+    block_worker: http://{{ $.Chart.Name }}-0dns
     handlers:
       rate_limit: 10 # 10 per second
 
