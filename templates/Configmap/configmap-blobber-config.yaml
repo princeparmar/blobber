@@ -60,7 +60,7 @@ data:
     # service charge of the blobber
     service_charge: 0.30
 
-    block_worker: http://{{ $.Chart.Name }}-0dns
+    block_worker: http://{{ $.Chart.Name }}-zdns
     handlers:
       rate_limit: 10 # 10 per second
 
@@ -139,7 +139,7 @@ data:
     # service charge of related blobber
     service_charge: 0.30
 
-    block_worker: http://{{ $.Chart.Name }}-0dns
+    block_worker: http://{{ $.Chart.Name }}-zdns
     handlers:
       rate_limit: 10 # 10 per second
 

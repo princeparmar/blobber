@@ -16,7 +16,7 @@ spec:
             - bash
             - -c
             # - "date; echo sleeping....; sleep 300s;"
-            - "./stake_blobbers --wallet_file '{{ $.Release.Namespace }}_blob_keys.json' --block_worker 'http://{{ $.Release.Namespace }}.{{ $.Values.blobber.host }}/{{ $.Chart.Name }}-0dns' --tokens 2 --total_blobbers {{ $.Values.blobber.blobberCount | int }}"
+            - "./stake_blobbers --wallet_file '{{ $.Release.Namespace }}_blob_keys.json' --block_worker 'http://{{ $.Release.Namespace }}.{{ $.Values.blobber.host }}/dns' --tokens 2 --total_blobbers {{ $.Values.blobber.blobberCount | int }}"
           volumeMounts:
             - mountPath: /0chain/go/src/magicBlock/{{ $.Release.Namespace }}_blob_keys.json
               name: delegate-wallet-json
