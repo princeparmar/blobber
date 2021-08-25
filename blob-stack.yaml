@@ -6,7 +6,7 @@ metadata:
       app.kubernetes.io/name: 0helm
       app.kubernetes.io/version: "1.16.0"
       app.kubernetes.io/managed-by: Helm
-      app.kubernetes.io/instance: test2-blobber-stack
+      app.kubernetes.io/instance: test3-blobber-stack
   name: 
     helm-blobber-stack
 spec:
@@ -14,18 +14,18 @@ spec:
   template:
     spec:
       containers:
-        - name: test2-blobber-stack
+        - name: test3-blobber-stack
           image: 0chaindev/stake:latest
           imagePullPolicy: Always
           args:
             - bash
             - -c
             # - "date; echo sleeping....; sleep 300s;"
-            - "./stake_blobbers --wallet_file 'helm3_blob_keys.json' --block_worker 'http://helm3.0chain.net/dns' --tokens 2 --total_blobbers 6"
+            - "./stake_blobbers --wallet_file 'helm_blob_keys.json' --block_worker 'http://helm.0chain.net/dns' --tokens 2 --total_blobbers 6"
           volumeMounts:
-            - mountPath: /0chain/go/src/magicBlock/helm3_blob_keys.json
+            - mountPath: /0chain/go/src/magicBlock/helm_blob_keys.json
               name: delegate-wallet-json
-              subPath: helm3_blob_keys.json
+              subPath: helm_blob_keys.json
       restartPolicy: Never
       imagePullSecrets:
         - name: regcred
