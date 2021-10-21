@@ -5,51 +5,49 @@ import (
 	"time"
 
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/config"
+	"github.com/desertbit/timer"
 )
 
 // SetupWorkers start challenge workers
 func SetupWorkers(ctx context.Context) {
-	go startSyncOpen(ctx)
+	go startAcceptNew(ctx)
 	go startProcessAccepted(ctx)
 	go startCommitProcessed(ctx)
 }
 
 func startCommitProcessed(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(config.Configuration.ChallengeResolveFreq) * time.Second)
-	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case <-time.After((time.Duration(config.Configuration.ChallengeResolveFreq) * time.Second):
 			commitProcessed(ctx)
 		}
 	}
 }
 
 func startProcessAccepted(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(config.Configuration.ChallengeResolveFreq) * time.Second)
-	defer ticker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
+		case <-timer.After(time.Duration(config.Configuration.ChallengeResolveFreq) * time.Second):
 			processAccepted(ctx)
 		}
 	}
 }
 
-// startSyncOpen
-func startSyncOpen(ctx context.Context) {
-	ticker := time.NewTicker(time.Duration(config.Configuration.ChallengeResolveFreq) * time.Second)
-	defer ticker.Stop()
+// startAcceptNew
+func startAcceptNew(ctx context.Context) {
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-ticker.C:
-			syncOpenChallenges(ctx)
+		case <-time.After(time.Duration(config.Configuration.ChallengeResolveFreq) * time.Second):
+			acceptChallenges(ctx)
 		}
 	}
 }

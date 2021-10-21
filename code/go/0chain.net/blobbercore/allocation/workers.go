@@ -27,29 +27,21 @@ const (
 	REPAIR_TIMEOUT     = 900             // 15 Minutes
 )
 
-func StartUpdateWorker(ctx context.Context, interval time.Duration) {
-	go UpdateWorker(ctx, interval)
+func StartSyncWorker(ctx context.Context, interval time.Duration) {
+	go syncStatus(ctx, interval)
 }
 
-// UpdateWorker updates all not finalized and not cleaned allocations
+// syncStatus updates all not finalized and not cleaned allocations
 // requesting SC through REST API. The worker required to fetch allocations
 // updates in DB.
-func UpdateWorker(ctx context.Context, interval time.Duration) {
+func syncStatus(ctx context.Context, interval time.Duration) {
 	Logger.Info("start update allocations worker")
-
-	var tk = time.NewTicker(interval)
-	defer tk.Stop()
-
-	var (
-		tick = tk.C
-		quit = ctx.Done()
-	)
 
 	for {
 		select {
-		case <-tick:
+		case <-time.After(interval):
 			updateWork(ctx)
-		case <-quit:
+		case <-ctx.Done():
 			return
 		}
 	}
@@ -92,7 +84,7 @@ func updateWork(ctx context.Context) {
 
 	for start := true; start || (offset < count); start = false {
 
-		allocs, count, err = findAllocations(ctx, offset)
+		allocs, count, err = getOpenAllocations(ctx, offset)
 		if err != nil {
 			Logger.Error("finding allocations in DB", zap.Error(err))
 			if waitOrQuit(ctx, UPDATE_DB_INTERVAL) {
@@ -113,23 +105,20 @@ func updateWork(ctx context.Context) {
 }
 
 // not finalized, not cleaned up
-func findAllocations(ctx context.Context, offset int64) (
+func getOpenAllocations(ctx context.Context, offset int64) (
 	allocs []*Allocation, count int64, err error) {
 
 	const query = `finalized = false AND cleaned_up = false`
 
-	ctx = datastore.GetStore().CreateTransaction(ctx)
+	db := datastore.GetStore().GetDB()
 
-	var tx = datastore.GetStore().GetTransaction(ctx)
-	defer tx.Rollback()
-
-	err = tx.Model(&Allocation{}).Where(query).Count(&count).Error
+	err = db.Model(&Allocation{}).Where(query).Count(&count).Error
 	if err != nil {
 		return
 	}
 
 	allocs = make([]*Allocation, 0) // have to make for the GROM (stupid GORM)
-	err = tx.Model(&Allocation{}).
+	err = db.Model(&Allocation{}).
 		Where(query).
 		Limit(UPDATE_LIMIT).
 		Offset(int(offset)).

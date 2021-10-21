@@ -1,14 +1,15 @@
 package challenge
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
+	"time"
 
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/config"
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/models"
 	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
 	"github.com/0chain/blobber/code/go/0chain.net/core/lock"
 	"github.com/0chain/blobber/code/go/0chain.net/core/node"
 	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
@@ -24,8 +25,7 @@ type BCChallengeResponse struct {
 	Challenges []*ChallengeEntity `json:"challenges"`
 }
 
-// syncOpenChallenges get challenge from blockchain , and add them in database
-func syncOpenChallenges(ctx context.Context) {
+func getChallenges(ctx context.Context) *BlobberChallenge {
 	defer func() {
 		if r := recover(); r != nil {
 			logging.Logger.Error("[recover]challenge", zap.Any("err", r))
@@ -35,65 +35,84 @@ func syncOpenChallenges(ctx context.Context) {
 	params := make(map[string]string)
 	params["blobber"] = node.Self.ID
 
-	var blobberChallenges BCChallengeResponse
-	blobberChallenges.Challenges = make([]*ChallengeEntity, 0)
-	retBytes, err := transaction.MakeSCRestAPICall(transaction.STORAGE_CONTRACT_ADDRESS, "/openchallenges", params, chain.GetServerChain())
-
+	blobberChallenges := &BlobberChallenge{}
+	blobberChallenges.Challenges = make([]*StorageChallenge, 0)
+	buf, err := transaction.MakeSCRestAPICall(transaction.STORAGE_CONTRACT_ADDRESS, "/openchallenges", params, chain.GetServerChain())
 	if err != nil {
-		logging.Logger.Error("Error getting the open challenges from the blockchain", zap.Error(err))
-	} else {
+		logging.Logger.Error("[challenge]get: ", zap.Error(err))
+		return nil
+	}
 
-		bytesReader := bytes.NewBuffer(retBytes)
+	err = json.Unmarshal(buf, blobberChallenges)
+	if err != nil {
+		logging.Logger.Error("[challenge]json: ", zap.Error(err))
+		return nil
+	}
 
-		d := json.NewDecoder(bytesReader)
-		d.UseNumber()
-		errd := d.Decode(&blobberChallenges)
+	return blobberChallenges
 
-		if errd != nil {
-			logging.Logger.Error("Error in unmarshal of the sharder response", zap.Error(errd))
-		} else {
-			for _, challengeObj := range blobberChallenges.Challenges {
-				if challengeObj == nil || len(challengeObj.ChallengeID) == 0 {
-					logging.Logger.Info("No challenge entity from the challenge map")
-					continue
-				}
+}
 
-				tx := datastore.GetStore().CreateTransaction(ctx)
-				db := datastore.GetStore().GetTransaction(tx)
-				_, err := GetChallengeEntity(tx, challengeObj.ChallengeID)
+// acceptChallenges get challenge from blockchain , and add them in database if it doesn't exists
+func acceptChallenges(ctx context.Context) {
+	defer func() {
+		if r := recover(); r != nil {
+			logging.Logger.Error("[recover]challenge", zap.Any("err", r))
+		}
+	}()
 
-				// challenge is not synced in db yet
-				if errors.Is(err, gorm.ErrRecordNotFound) {
+	blobberChallenges := getChallenges(ctx)
 
-					latestChallenge, err := GetLastChallengeEntity(tx)
+	if blobberChallenges == nil {
+		logging.Logger.Info("[challenge]No open challenge")
+		return
+	}
 
-					if err != nil {
-						if !errors.Is(err, gorm.ErrRecordNotFound) {
-							logging.Logger.Info("Error in load challenge entity from database ", zap.Error(err))
-							continue
-						}
-					}
+	db := datastore.GetStore().GetDB()
 
-					isFirstChallengeInDatabase := len(challengeObj.PrevChallengeID) == 0 || latestChallenge == nil
-					isNextChallengeOnChain := latestChallenge == nil || latestChallenge.ChallengeID == challengeObj.PrevChallengeID
-
-					if isFirstChallengeInDatabase || isNextChallengeOnChain {
-						logging.Logger.Info("Adding new challenge found from blockchain", zap.String("challenge", challengeObj.ChallengeID))
-						challengeObj.Status = Accepted
-						if err := challengeObj.Save(tx); err != nil {
-							logging.Logger.Error("ChallengeEntity_Save", zap.String("challenge_id", challengeObj.ChallengeID), zap.Error(err))
-						}
-					} else {
-						logging.Logger.Error("Challenge chain is not valid")
-					}
-
-				}
-				db.Commit()
-				tx.Done()
-			}
+	for _, c := range blobberChallenges.Challenges {
+		if c == nil || len(c.ID) == 0 {
+			continue
 		}
 
+		ok, err := Exists(ctx, db, c.ID)
+		if err != nil {
+			logging.Logger.Error("[challenge]exists: ", zap.Error(err))
+			return
+		}
+
+		if ok {
+			continue
+		}
+
+		logging.Logger.Info("[challenge]accept " + c.ID)
+
+		it := &models.Challenge{
+			ChallengeID: c.ID,
+
+			AllocationID:   c.AllocationID,
+			AllocationRoot: c.AllocationRoot,
+
+			Status: models.ChallengeStatusAccepted,
+			Result: models.ChallengeResultUnknown,
+
+			Seed:       c.RandomNumber,
+			Validators: models.ToJSON(c.Validators),
+
+			CreatedAt: common.ToTime(c.Created),
+			UpdatedAt: time.Now().UTC(),
+		}
+
+		err = db.Transaction(func(tx *gorm.DB) error {
+			return db.Create(it).Error
+		})
+
+		if err != nil {
+			logging.Logger.Error("[challenge]tx: ", zap.Error(err))
+			return
+		}
 	}
+
 }
 
 // processAccepted read accepted challenge from db, and send them to validator to pass challenge

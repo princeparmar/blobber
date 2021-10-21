@@ -2,27 +2,24 @@ package transaction
 
 import (
 	"context"
-	"crypto/sha1"
 	"encoding/hex"
+	"hash/fnv"
 	"math"
-	"strconv"
 
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 
+	"io"
+
 	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
 	"github.com/0chain/blobber/code/go/0chain.net/core/common"
-	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
 	"github.com/0chain/errors"
 	"github.com/0chain/gosdk/core/resty"
 	"github.com/0chain/gosdk/core/util"
 	"github.com/0chain/gosdk/zcncore"
-
-	"go.uber.org/zap"
 )
 
 const TXN_SUBMIT_URL = "v1/transaction/put"
@@ -122,27 +119,22 @@ func makeSCRestAPICall(scAddress string, relativePath string, params map[string]
 		url := req.URL.String()
 
 		if resp.StatusCode != http.StatusOK {
-			resBody, _ := ioutil.ReadAll(resp.Body)
 			resp.Body.Close()
+			errorMessage := url + ": " + resp.Status
+			msgList = append(msgList, errorMessage)
 
-			Logger.Error("[sharder]"+resp.Status, zap.String("url", req.URL.String()), zap.String("response", string(resBody)))
-
-			msgList = append(msgList, url+": ["+strconv.Itoa(resp.StatusCode)+"] "+string(resBody))
-
-			return errors.Throw(ErrBadRequest, req.URL.String()+" "+resp.Status)
+			return errors.Throw(ErrBadRequest, errorMessage)
 
 		}
-
-		hash := sha1.New()
-		teeReader := io.TeeReader(resp.Body, hash)
-		resBody, err := ioutil.ReadAll(teeReader)
+		hash := fnv.New32() //faster than sha1
+		reader := io.TeeReader(resp.Body, hash)
+		body, err := ioutil.ReadAll(reader)
 		resp.Body.Close()
 
 		if err != nil {
-			Logger.Error("[sharder]"+err.Error(), zap.String("url", req.URL.String()), zap.String("response", string(resBody)))
-			msgList = append(msgList, url+": "+err.Error())
-			return errors.Throw(ErrBadRequest, req.URL.String()+" "+err.Error())
-
+			errorMessage := url + ": " + err.Error()
+			msgList = append(msgList, errorMessage)
+			return errors.Throw(ErrBadRequest, errorMessage)
 		}
 
 		hashString := hex.EncodeToString(hash.Sum(nil))
@@ -150,7 +142,7 @@ func makeSCRestAPICall(scAddress string, relativePath string, params map[string]
 
 		if hashCounters[hashString] > hashMaxCounter {
 			hashMaxCounter = hashCounters[hashString]
-			resMaxCounterBody = resBody
+			resMaxCounterBody = body
 		}
 
 		return nil
