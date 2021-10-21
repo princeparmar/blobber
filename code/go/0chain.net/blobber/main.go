@@ -18,7 +18,9 @@ import (
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/filestore"
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/handler"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/models"
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/readmarker"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/reference"
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/writemarker"
 	"github.com/0chain/blobber/code/go/0chain.net/core/build"
 	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
@@ -208,9 +210,21 @@ func setupDatabase() {
 				panic(err) // fail
 			}
 
-			return // success
+			break // success
 		}
 	}
+
+	db := datastore.GetStore().GetDB()
+	log.Println("[db] migrate")
+	models.AutoMigrate(db)
+
+	//run DryRun in background worker
+	go func() {
+		log.Println("[db] dryrun allocations")
+		allocation.DryRun(db)
+		log.Println("[db] dryrun reference_objects")
+		reference.DryRun(db)
+	}()
 }
 
 func setupOnChain() {
