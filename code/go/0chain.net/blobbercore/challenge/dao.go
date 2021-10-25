@@ -2,6 +2,7 @@ package challenge
 
 import (
 	"context"
+	"time"
 
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/models"
 	"github.com/0chain/errors"
@@ -17,7 +18,7 @@ func Exists(ctx context.Context, db *gorm.DB, challengeID string) (bool, error) 
 	}
 
 	var count int64
-	err := db.Table(models.TableNameChallenge).Where(SQLWhereExists, challengeID).Count(&count).Error
+	err := db.Table(models.TableNameChallenge).Where(SQLWhereId, challengeID).Count(&count).Error
 
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -30,25 +31,39 @@ func Exists(ctx context.Context, db *gorm.DB, challengeID string) (bool, error) 
 	return count > 0, nil
 }
 
-// GetLatestChallengeID get latest challenge_id order by sequence
-func GetLatestChallengeID(ctx context.Context, db *gorm.DB) (string, error) {
+// getTodoChallenges get todo challenges list which status is accepted
+func getTodoChallenges(ctx context.Context, db *gorm.DB) ([]*models.Challenge, error) {
 
-	var result map[string]string
-	err := db.Table(models.TableNameChallenge).Select("challenge_id").Order("sequence desc").First(&result).Error
+	var list []*models.Challenge
+	err := db.Table(models.TableNameChallenge).
+		Where(SQLWhereTodo).
+		Order("sequence desc").
+		Find(&list).Error
 
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return "", nil
-		}
-
-		return "", errors.ThrowLog(err.Error(), constants.ErrBadDatabaseOperation)
+		return nil, errors.ThrowLog(err.Error(), constants.ErrBadDatabaseOperation)
 	}
 
-	return result["challenge_id"], nil
+	return list, nil
+}
+
+// cancelChallenge cancel invalid challenge from blockchain
+func cancelChallenge(ctx context.Context, db *gorm.DB, id, message string) error {
+
+	return db.Table(models.TableNameChallenge).
+		Where(SQLWhereId, id).
+		Select("status", "status_messsage", "updated_at").
+		Updates(map[string]interface{}{
+			"status":          models.ChallengeStatusSkipped,
+			"status_messsage": message,
+			"updated_at":      time.Now().Unix(),
+		}).Error
+
 }
 
 const (
-	SQLWhereExists = `challenges.challenge_id = ?`
+	SQLWhereId   = `challenges.challenge_id = ?`
+	SQLWhereTodo = `challenges.status = 1`
 )
 
 // DryRun  Creates a prepared statement when executing any SQL and caches them to speed up future calls
@@ -61,12 +76,6 @@ func DryRun(db *gorm.DB) {
 
 	// use Table instead of Model to reduce reflect times
 
-	// prepare statement for Exists
-	var count int64
-	tx.Table(models.TableNameChallenge).Where(SQLWhereExists, "id").Count(&count)
-
-	// prepare statement for GetLatestChallengeID
-	var result map[string]string
-	db.Table(models.TableNameChallenge).Select("challenge_id").Order("sequence desc").First(&result)
-
+	Exists(context.TODO(), tx, "id")
+	getTodoChallenges(context.TODO(), tx)
 }

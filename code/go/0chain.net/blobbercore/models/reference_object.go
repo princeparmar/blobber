@@ -43,3 +43,27 @@ type ReferenceObject struct {
 func (ReferenceObject) TableName() string {
 	return TableNameReferenceObject
 }
+
+// ChallengeMeta basic information for challenge
+type ChallengeMeta struct {
+	Hash      string `gorm:"column:hash"`
+	NumBlocks int64  `gorm:"column:num_of_blocks" `
+}
+
+// ChallengeStorage storage object for challenge
+type ChallengeStorage struct {
+	ID          int64  `gorm:"column:id;primary_key" json:"id,omitempty"`
+	Name        string `gorm:"column:name" json:"name,omitempty"`
+	Size        int64  `gorm:"column:size" json:"size,omitempty"`
+	Type        string `gorm:"column:type" json:"type,omitempty"`
+	Path        string `gorm:"column:path" json:"path,omitempty"`
+	PathLevel   int    `gorm:"column:level" json:"path_level,omitempty"`
+	ParentPath  string `gorm:"column:parent_path" json:"parent_path,omitempty"`
+	NumBlocks   int64  `gorm:"column:num_of_blocks" json:"num_blocks,omitempty"`
+	ContentHash string `gorm:"column:content_hash" json:"content_hash,omitempty"`
+	ChunkSize   int64  `gorm:"column:chunk_size" json:"chunk_size,omitempty"`
+}
+
+func (ChallengeStorage) TableName() string {
+	return TableNameReferenceObject
+}

@@ -27,7 +27,7 @@ import (
 	"github.com/0chain/blobber/code/go/0chain.net/core/common"
 	"github.com/0chain/blobber/code/go/0chain.net/core/encryption"
 	"github.com/0chain/blobber/code/go/0chain.net/core/logging"
-	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
+
 	"github.com/0chain/blobber/code/go/0chain.net/core/node"
 	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
 
@@ -89,6 +89,7 @@ func setupWorkerConfig() {
 	config.Configuration.RMRedeemNumWorkers = viper.GetInt("readmarker_redeem.num_workers")
 
 	config.Configuration.ChallengeResolveFreq = viper.GetInt64("challenge_response.frequency")
+
 	config.Configuration.ChallengeResolveNumWorkers = viper.GetInt("challenge_response.num_workers")
 	config.Configuration.ChallengeMaxRetires = viper.GetInt("challenge_response.max_retries")
 
@@ -196,8 +197,7 @@ func setupWorkers() {
 	challenge.SetupWorkers(root)
 	readmarker.SetupWorkers(root)
 	writemarker.SetupWorkers(root)
-	allocation.StartUpdateWorker(root,
-		config.Configuration.UpdateAllocationsInterval)
+	allocation.SetupWorkers(root, config.Configuration.UpdateAllocationsInterval)
 }
 
 func setupDatabase() {
@@ -206,7 +206,7 @@ func setupDatabase() {
 		time.Sleep(1 * time.Second)
 		if err := datastore.GetStore().Open(); err == nil {
 			if i == 1 { // no more attempts
-				Logger.Error("Failed to connect to the database. Shutting the server down")
+				logging.Logger.Error("Failed to connect to the database. Shutting the server down")
 				panic(err) // fail
 			}
 
@@ -215,15 +215,19 @@ func setupDatabase() {
 	}
 
 	db := datastore.GetStore().GetDB()
-	log.Println("[db] migrate")
+	logging.Logger.Info("[db]migrate")
 	models.AutoMigrate(db)
 
 	//run DryRun in background worker
 	go func() {
-		log.Println("[db] dryrun allocations")
+		logging.Logger.Info("[db]dryrun allocations")
 		allocation.DryRun(db)
-		log.Println("[db] dryrun reference_objects")
+		logging.Logger.Info("[db]dryrun reference_objects")
 		reference.DryRun(db)
+		logging.Logger.Info("[db]dryrun challenge")
+		challenge.DryRun(db)
+		logging.Logger.Info("[db]dryrun writemarker")
+		writemarker.DryRun(db)
 	}()
 }
 

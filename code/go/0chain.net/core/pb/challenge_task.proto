@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "code/go/0chain.net/core/pb";
+
+message ChallengeTask {
+  string ChallengeID = 1;
+  string RootHash = 2;
+  repeated ChallengeStorage Storages = 3;
+  repeated ChallengeWriteMarker WriteMarkers = 4;
+  ChallengeStorage SelectedFile = 5;
+  int64 SelectedBlockIndex = 6;
+  bytes SelectedBlockBytes = 7;
+  MerklePath SelectedMerklePath = 8;
+}
+
+message ChallengeStorage {
+  int64 ID = 1;
+  string Name = 2;
+  int64 Size = 3;
+  string Type = 4;
+  string Path = 5;
+  int32 PathLevel = 6;
+  string ParentPath = 7;
+  int64 NumBlocks = 8;
+  string ContentHash = 9;
+  int64 ChunkSize = 10;
+}
+
+message ChallengeWriteMarker {
+  string AllocationRoot = 1;
+  string PreviousAllocationRoot = 2;
+  string AllocationID = 3;
+  int64 Size = 4;
+  string BlobberID = 5;
+  google.protobuf.Timestamp Timestamp = 6;
+  string ClientID = 7;
+  string ClientPublicKey = 8;
+  string Signature = 9;
+}
+
+message MerklePath {
+  repeated string Nodes = 1;
+  int64 LeafIndex = 2;
+}

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+
+option go_package = "code/go/0chain.net/core/pb";
+
+message ValidatorTicket {
+    
+}

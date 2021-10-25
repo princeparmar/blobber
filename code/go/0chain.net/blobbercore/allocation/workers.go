@@ -27,20 +27,20 @@ const (
 	REPAIR_TIMEOUT     = 900             // 15 Minutes
 )
 
-func StartSyncWorker(ctx context.Context, interval time.Duration) {
-	go syncStatus(ctx, interval)
+func SetupWorkers(ctx context.Context, interval time.Duration) {
+	go startSyncStatus(ctx, interval)
 }
 
-// syncStatus updates all not finalized and not cleaned allocations
+// startSyncStatus updates all not finalized and not cleaned allocations
 // requesting SC through REST API. The worker required to fetch allocations
 // updates in DB.
-func syncStatus(ctx context.Context, interval time.Duration) {
+func startSyncStatus(ctx context.Context, interval time.Duration) {
 	Logger.Info("start update allocations worker")
 
 	for {
 		select {
 		case <-time.After(interval):
-			updateWork(ctx)
+			syncStatus(ctx)
 		case <-ctx.Done():
 			return
 		}
@@ -64,7 +64,7 @@ func waitOrQuit(ctx context.Context, d time.Duration) (quit bool) {
 	}
 }
 
-func updateWork(ctx context.Context) {
+func syncStatus(ctx context.Context) {
 
 	defer func() {
 		if r := recover(); r != nil {

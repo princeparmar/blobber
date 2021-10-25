@@ -15,6 +15,7 @@ const (
 	ChallengeStatusAccepted ChallengeStatus = iota + 1
 	ChallengeStatusProcessed
 	ChallengeStatusCommitted
+	ChallengeStatusSkipped
 )
 
 const (
@@ -41,8 +42,6 @@ type Challenge struct {
 
 	Seed     int64 `gorm:"column:seed"`
 	BlockNum int64 `gorm:"column:block_num"`
-
-	//Sequence int64 `gorm:"sequence"` // it is used https://www.postgresql.org/docs/9.4/functions-sequence.html. can't be inserted/updated by gorm
 
 	CommitTxnID       string         `gorm:"column:commit_txn_id"`
 	LastCommitTxnList datatypes.JSON `gorm:"column:last_commit_txn_ids"`

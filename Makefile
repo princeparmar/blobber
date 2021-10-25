@@ -9,6 +9,8 @@
 ########################################################
 ########################################################
 ########################################################
+UNAME_OS := $(shell uname -s)
+UNAME_ARCH := $(shell uname -m)
 
 
 .PHONY: test
@@ -25,7 +27,21 @@ integration-tests:
 	go test -tags bn256 ./... -args integration;
 
 
+.PHONY: install-protoc
+install-protoc:
+ifeq ($(UNAME_OS),Darwin)
+	brew install protobuf protoc-gen-go
+else
+	is=linux
+	@echo "please install it manually on $(UNAME_OS)"
+endif
 
+	
+
+
+.PHONY: build-protobuf
+build-protobuf:
+	protoc --go_out=. ./code/go/0chain.net/core/pb/*.proto
 
 ########################################################
 ########################################################
@@ -68,8 +84,7 @@ BUF_INSTALL_FROM_SOURCE := false
 
 ### Everything below this line is meant to be static, i.e. only adjust the above variables. ###
 
-UNAME_OS := $(shell uname -s)
-UNAME_ARCH := $(shell uname -m)
+
 # Buf will be cached to ~/.cache/buf-example.
 CACHE_BASE := $(HOME)/.cache/$(PROJECT)
 # This allows switching between i.e a Docker container and your local setup without overwriting.

@@ -97,7 +97,7 @@ func WithAuth(r *http.Request) (*Context, error) {
 	ctx.Signature = r.Header.Get(common.ClientSignatureHeader)
 
 	if len(ctx.AllocationTx) > 0 {
-		alloc, err := allocation.GetOrCreate(ctx, ctx.Store, ctx.AllocationTx)
+		alloc, err := allocation.GetOrCreate(ctx, ctx.Store.GetDB(), ctx.AllocationTx)
 
 		if err != nil {
 			if errors.Is(constants.ErrBadRequest, err) {

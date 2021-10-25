@@ -106,4 +106,12 @@ var releases = []Migration{
 			"CREATE INDEX idx_allocation_path ON reference_objects (allocation_id,path,deleted_at);",
 		},
 	},
+	{
+		Version:   "0.2.0",
+		CreatedAt: time.Date(2021, 10, 22, 0, 0, 0, 0, time.UTC),
+		Scripts: []string{
+			"CREATE INDEX idx_allocation_parent ON reference_objects (allocation_id,parent_path,deleted_at);",
+			"CREATE INDEX idx_allocation_id_root ON write_markers (allocation_id,allocation_root);",
+		},
+	},
 }

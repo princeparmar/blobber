@@ -3,17 +3,24 @@ package challenge
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"math"
+	"math/rand"
+	"strconv"
 	"time"
 
-	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/config"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/allocation"
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/filestore"
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/models"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/reference"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/writemarker"
 	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
 	"github.com/0chain/blobber/code/go/0chain.net/core/common"
 	"github.com/0chain/blobber/code/go/0chain.net/core/lock"
 	"github.com/0chain/blobber/code/go/0chain.net/core/node"
 	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
-	"github.com/remeh/sizedwaitgroup"
+	"github.com/0chain/gosdk/constants"
 	"go.uber.org/zap"
 	"gorm.io/gorm"
 
@@ -26,11 +33,6 @@ type BCChallengeResponse struct {
 }
 
 func getChallenges(ctx context.Context) *BlobberChallenge {
-	defer func() {
-		if r := recover(); r != nil {
-			logging.Logger.Error("[recover]challenge", zap.Any("err", r))
-		}
-	}()
 
 	params := make(map[string]string)
 	params["blobber"] = node.Self.ID
@@ -122,58 +124,236 @@ func processAccepted(ctx context.Context) {
 			logging.Logger.Error("[recover]challenge", zap.Any("err", r))
 		}
 	}()
-	rctx := datastore.GetStore().CreateTransaction(ctx)
-	db := datastore.GetStore().GetTransaction(rctx)
-	openchallenges := make([]*ChallengeEntity, 0)
-	db.Where(ChallengeEntity{Status: Accepted}).Find(&openchallenges)
-	if len(openchallenges) > 0 {
-		swg := sizedwaitgroup.New(config.Configuration.ChallengeResolveNumWorkers)
-		for _, openchallenge := range openchallenges {
-			logging.Logger.Info("Processing the challenge", zap.Any("challenge_id", openchallenge.ChallengeID), zap.Any("openchallenge", openchallenge))
-			err := openchallenge.UnmarshalFields()
-			if err != nil {
-				logging.Logger.Error("Error unmarshaling challenge entity.", zap.Error(err))
-				continue
-			}
-			swg.Add()
-			go func(redeemCtx context.Context, challengeEntity *ChallengeEntity) {
-				redeemCtx = datastore.GetStore().CreateTransaction(redeemCtx)
-				defer redeemCtx.Done()
-				err := loadValidationTickets(redeemCtx, challengeEntity)
-				if err != nil {
-					logging.Logger.Error("Getting validation tickets failed", zap.Any("challenge_id", challengeEntity.ChallengeID), zap.Error(err))
-				}
-				db := datastore.GetStore().GetTransaction(redeemCtx)
-				err = db.Commit().Error
-				if err != nil {
-					logging.Logger.Error("Error commiting the readmarker redeem", zap.Error(err))
-				}
-				swg.Done()
-			}(ctx, openchallenge)
-		}
-		swg.Wait()
+
+	db := datastore.GetStore().GetDB()
+
+	list, err := getTodoChallenges(ctx, db)
+	if err != nil {
+		logging.Logger.Error("[challenge]exists: ", zap.Error(err))
+		return
 	}
-	db.Rollback()
-	rctx.Done()
+
+	for _, it := range list {
+
+		var validators []ValidationNode
+
+		err := models.FromJSON(&it.Validators, &validators)
+
+		if err != nil {
+			cancelChallenge(ctx, db, it.ChallengeID, err.Error())
+			continue
+		}
+
+		if len(validators) == 0 {
+			cancelChallenge(ctx, db, it.ChallengeID, "No validators assigned to the challenge")
+			continue
+		}
+
+		challengeTask := &ChallengeTask{
+			ChallengeID: it.ChallengeID,
+		}
+
+		challengeTask.SelectedFile, challengeTask.SelectedBlockIndex, err = getChallengeFile(ctx, db, it.Seed, it.AllocationID)
+		if err != nil {
+			// cancel it if it is an unknown error
+			if !errors.Is(err, constants.ErrBadDatabaseOperation) {
+				cancelChallenge(ctx, db, it.ChallengeID, "invalid allocation id "+it.AllocationID)
+			}
+			//skip it if it is an unknown db error
+			continue
+		}
+
+		allocationRoot, err := allocation.GetAllocationRoot(ctx, db, it.AllocationID)
+		if err != nil {
+			// cancel it if it is an known error
+			if !errors.Is(err, constants.ErrBadDatabaseOperation) {
+				cancelChallenge(ctx, db, it.ChallengeID, "invalid allocation id "+it.AllocationID)
+			}
+			//skip it if it is an unknown db error
+			continue
+		}
+
+		challengeTask.WriteMarkers, err = writemarker.GetChallengeWriteMarker(ctx, db, it.AllocationID, it.AllocationRoot, allocationRoot)
+		if err != nil {
+			// cancel it if it is an unknown error
+			if !errors.Is(err, constants.ErrBadDatabaseOperation) {
+				cancelChallenge(ctx, db, it.ChallengeID, "invalid allocation id "+it.AllocationID)
+			}
+			//skip it if it is an unknown db error
+			continue
+		}
+
+		inputData := &filestore.FileInputData{}
+		inputData.Name = challengeTask.SelectedFile.Name
+		inputData.Path = challengeTask.SelectedFile.Path
+		inputData.Hash = challengeTask.SelectedFile.ContentHash
+		inputData.ChunkSize = challengeTask.SelectedFile.ChunkSize
+
+		maxNumBlocks := 1024
+
+		// the file is too small, some of 1024 blocks is not filled
+		if challengeTask.SelectedFile.Size < challengeTask.SelectedFile.ChunkSize {
+			merkleChunkSize := challengeTask.SelectedFile.ChunkSize / 1024
+			maxNumBlocks = int(math.Ceil(float64(challengeTask.SelectedFile.Size) / float64(merkleChunkSize)))
+		}
+
+		r := rand.New(rand.NewSource(it.Seed))
+		blockIndex := r.Intn(maxNumBlocks)
+		selectedBlockBytes, mt, err := filestore.GetFileStore().GetFileBlockForChallenge(it.AllocationID, inputData, blockIndex)
+
+		if err != nil {
+			cancelChallenge(ctx, db, it.ChallengeID, "invalid allocation id "+it.AllocationID)
+			continue
+		}
+
+		challengeTask.SelectedBlockBytes = selectedBlockBytes
+		challengeTask.SelectedMerklePath = mt.GetPathByIndex(blockIndex)
+
+		// 	postDataBytes, err := json.Marshal(postData)
+		// if err != nil {
+		// 	Logger.Error("Error in marshalling the post data for validation. " + err.Error())
+		// 	cr.ErrorChallenge(ctx, err)
+		// 	return err
+		// }
+		// responses := make(map[string]ValidationTicket)
+		// if cr.ValidationTickets == nil {
+		// 	cr.ValidationTickets = make([]*ValidationTicket, len(cr.Validators))
+		// }
+		// for i, validator := range cr.Validators {
+		// 	if cr.ValidationTickets[i] != nil {
+		// 		exisitingVT := cr.ValidationTickets[i]
+		// 		if len(exisitingVT.Signature) > 0 && exisitingVT.ChallengeID == cr.ChallengeID {
+		// 			continue
+		// 		}
+		// 	}
+
+		// 	url := validator.URL + VALIDATOR_URL
+
+		// 	resp, err := util.SendPostRequest(url, postDataBytes, nil)
+		// 	if err != nil {
+		// 		Logger.Info("Got error from the validator.", zap.Any("error", err.Error()))
+		// 		delete(responses, validator.ID)
+		// 		cr.ValidationTickets[i] = nil
+		// 		continue
+		// 	}
+		// 	var validationTicket ValidationTicket
+		// 	err = json.Unmarshal(resp, &validationTicket)
+		// 	if err != nil {
+		// 		Logger.Info("Got error decoding from the validator response .", zap.Any("resp", string(resp)), zap.Any("error", err.Error()))
+		// 		delete(responses, validator.ID)
+		// 		cr.ValidationTickets[i] = nil
+		// 		continue
+		// 	}
+		// 	Logger.Info("Got response from the validator.", zap.Any("validator_response", validationTicket))
+		// 	verified, err := validationTicket.VerifySign()
+		// 	if err != nil || !verified {
+		// 		Logger.Info("Validation ticket from validator could not be verified.")
+		// 		delete(responses, validator.ID)
+		// 		cr.ValidationTickets[i] = nil
+		// 		continue
+		// 	}
+		// 	responses[validator.ID] = validationTicket
+		// 	cr.ValidationTickets[i] = &validationTicket
+		// }
+
+		// numSuccess := 0
+		// numFailure := 0
+
+		// numValidatorsResponded := 0
+		// for _, vt := range cr.ValidationTickets {
+		// 	if vt != nil {
+		// 		if vt.Result {
+		// 			numSuccess++
+		// 		} else {
+		// 			numFailure++
+		// 		}
+		// 		numValidatorsResponded++
+		// 	}
+		// }
+
+		// Logger.Info("validator response stats", zap.Any("challenge_id", cr.ChallengeID), zap.Any("validator_responses", responses))
+		// if numSuccess > (len(cr.Validators)/2) || numFailure > (len(cr.Validators)/2) || numValidatorsResponded == len(cr.Validators) {
+		// 	if numSuccess > (len(cr.Validators) / 2) {
+		// 		cr.Result = ChallengeSuccess
+		// 	} else {
+		// 		cr.Result = ChallengeFailure
+		// 		//Logger.Error("Challenge failed by the validators", zap.Any("block_num", cr.BlockNum), zap.Any("object_path", objectPath), zap.Any("challenge", cr))
+		// 	}
+
+		// 	cr.Status = Processed
+		// } else {
+		// 	cr.ErrorChallenge(ctx, common.NewError("no_consensus_challenge", "No Consensus on the challenge result. Erroring out the challenge"))
+		// 	return common.NewError("no_consensus_challenge", "No Consensus on the challenge result. Erroring out the challenge")
+		// }
+
+		// return cr.Save(ctx)
+
+	}
+
 }
 
-// loadValidationTickets load validation tickets for challenge
-func loadValidationTickets(ctx context.Context, challengeObj *ChallengeEntity) error {
-	mutex := lock.GetMutex(challengeObj.TableName(), challengeObj.ChallengeID)
-	mutex.Lock()
+// getChallengeFile pick storage file for challenge based on randSeed
+func getChallengeFile(ctx context.Context, db *gorm.DB, randSeed int64, allocationID string) (*models.ChallengeStorage, int64, error) {
+	root, err := reference.GetChallengeMeta(ctx, db, allocationID)
 
-	defer func() {
-		if r := recover(); r != nil {
-			logging.Logger.Error("[recover] LoadValidationTickets", zap.Any("err", r))
-		}
-	}()
-
-	err := challengeObj.LoadValidationTickets(ctx)
 	if err != nil {
-		logging.Logger.Error("Error getting the validation tickets", zap.Error(err), zap.String("challenge_id", challengeObj.ChallengeID))
+		return nil, 0, err
 	}
 
-	return err
+	if root.NumBlocks < 1 {
+		return nil, 0, errors.New("blank allocation")
+
+	}
+
+	obj := &ChallengeTask{
+		RootHash: root.Hash,
+		Storages: make([][]*models.ChallengeStorage, 0),
+	}
+
+	r := rand.New(rand.NewSource(randSeed))
+	blockNum := r.Int63n(root.NumBlocks) + 1 //index from 1 instead of 0
+	remainingBlocks := blockNum
+
+	selectedPath := "/"
+
+	for level := 0; ; level++ {
+		blocks, err := reference.GetNextBlocks(ctx, db, allocationID, selectedPath)
+
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if len(blocks) == 0 {
+			return nil, 0, errors.New("invalid blockNum: " + strconv.FormatInt(blockNum, 10) + "/" + strconv.FormatInt(root.NumBlocks, 10))
+		}
+
+		list := make([]*models.ChallengeStorage, 0, len(blocks))
+		obj.Storages = append(obj.Storages, list)
+
+		for _, it := range blocks {
+
+			list = append(list, it)
+
+			// it is dir, we need to load its files
+			if it.Type == reference.DIRECTORY {
+				// block will be this dir's files
+				if it.NumBlocks > remainingBlocks {
+					selectedPath = it.Path
+					continue
+				}
+			}
+
+			if it.NumBlocks > remainingBlocks {
+				// block is found on this file for challenge
+				return it, remainingBlocks, nil
+
+			}
+
+			// block is still not found, move to next file/folder
+			remainingBlocks -= it.NumBlocks
+		}
+	}
+
 }
 
 func commitProcessed(ctx context.Context) {
