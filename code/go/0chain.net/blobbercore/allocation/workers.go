@@ -2,22 +2,21 @@ package allocation
 
 import (
 	"context"
-	"crypto/rand"
 	"encoding/json"
-	"fmt"
-	"math/big"
 	"time"
 
-	"0chain.net/blobbercore/datastore"
-	"0chain.net/blobbercore/reference"
-	"0chain.net/core/chain"
-	"0chain.net/core/common"
-	"0chain.net/core/lock"
-	"0chain.net/core/transaction"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/reference"
+	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/core/lock"
+	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
+	"github.com/0chain/gosdk/constants"
+	"github.com/0chain/gosdk/zboxcore/zboxutil"
 
 	"gorm.io/gorm"
 
-	. "0chain.net/core/logging"
+	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
 	"go.uber.org/zap"
 )
 
@@ -74,6 +73,12 @@ func waitOrQuit(ctx context.Context, d time.Duration) (quit bool) {
 }
 
 func updateWork(ctx context.Context) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			Logger.Error("[recover] updateWork", zap.Any("err", r))
+		}
+	}()
 
 	var (
 		allocs []*Allocation
@@ -152,7 +157,7 @@ func updateAllocation(ctx context.Context, a *Allocation) {
 	}
 
 	// if new Tx, then we have to update the allocation
-	if sa.Tx != a.Tx || sa.Finalized != a.Finalized {
+	if sa.Tx != a.Tx || sa.OwnerID != a.OwnerID || sa.Finalized != a.Finalized {
 		if a, err = updateAllocationInDB(ctx, a, sa); err != nil {
 			Logger.Error("updating allocation in DB", zap.Error(err))
 			return
@@ -180,8 +185,7 @@ func requestAllocation(allocID string) (
 		transaction.STORAGE_CONTRACT_ADDRESS,
 		"/allocation",
 		map[string]string{"allocation": allocID},
-		chain.GetServerChain(),
-		nil)
+		chain.GetServerChain())
 	if err != nil {
 		return
 	}
@@ -210,6 +214,8 @@ func updateAllocationInDB(ctx context.Context, a *Allocation,
 
 	// transaction
 	a.Tx = sa.Tx
+	a.OwnerID = sa.OwnerID
+	a.OwnerPublicKey = sa.OwnerPublicKey
 
 	// update fields
 	a.Expiration = sa.Expiration
@@ -297,21 +303,13 @@ func cleanupAllocation(ctx context.Context, a *Allocation) {
 	}
 }
 
-func newConnectionID() string {
-	var nBig, err = rand.Int(rand.Reader, big.NewInt(0xffffffff))
-	if err != nil {
-		panic(err)
-	}
-	return fmt.Sprintf("%d", nBig.Int64())
-}
-
 func deleteInFakeConnection(ctx context.Context, a *Allocation) (err error) {
 	ctx = datastore.GetStore().CreateTransaction(ctx)
 	var tx = datastore.GetStore().GetTransaction(ctx)
 	defer commit(tx, &err)
 
 	var (
-		connID = newConnectionID()
+		connID = zboxutil.NewConnectionId()
 		conn   *AllocationChangeCollector
 	)
 	conn, err = GetAllocationChanges(ctx, connID, a.ID, a.OwnerID)
@@ -373,7 +371,7 @@ func deleteFile(ctx context.Context, path string,
 
 	change.ConnectionID = conn.ConnectionID
 	change.Size = 0 - deleteSize
-	change.Operation = DELETE_OPERATION
+	change.Operation = constants.FileOperationDelete
 
 	var dfc = &DeleteFileChange{
 		ConnectionID: conn.ConnectionID,

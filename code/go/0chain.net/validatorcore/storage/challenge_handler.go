@@ -8,10 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"0chain.net/core/cache"
-	"0chain.net/core/common"
-	. "0chain.net/core/logging"
-	"0chain.net/core/node"
+	"github.com/0chain/blobber/code/go/0chain.net/core/cache"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
+	"github.com/0chain/blobber/code/go/0chain.net/core/node"
 
 	"go.uber.org/zap"
 	"golang.org/x/crypto/sha3"
@@ -87,6 +87,7 @@ func ChallengeHandler(ctx context.Context, r *http.Request) (interface{}, error)
 		validationTicket.ValidatorID = node.Self.ID
 		validationTicket.ValidatorKey = node.Self.PublicKey
 		validationTicket.Timestamp = common.Now()
+
 		if err := validationTicket.Sign(); err != nil {
 			return nil, common.NewError("invalid_parameters", err.Error())
 		}

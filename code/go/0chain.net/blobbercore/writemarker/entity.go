@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"0chain.net/blobbercore/allocation"
-	"0chain.net/blobbercore/datastore"
-	"0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/allocation"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
 )
 
 type WriteMarker struct {
@@ -57,7 +57,7 @@ func (wm *WriteMarkerEntity) UpdateStatus(ctx context.Context,
 
 	db := datastore.GetStore().GetTransaction(ctx)
 	statusBytes, _ := json.Marshal(statusMessage)
-	fmt.Println(string(statusBytes))
+
 	if status == Failed {
 		wm.ReedeemRetries++
 		err = db.Model(wm).Updates(WriteMarkerEntity{
@@ -98,6 +98,7 @@ func (wm *WriteMarkerEntity) UpdateStatus(ctx context.Context,
 	return
 }
 
+// GetWriteMarkerEntity get WriteMarkerEntity from postgres
 func GetWriteMarkerEntity(ctx context.Context, allocation_root string) (*WriteMarkerEntity, error) {
 	db := datastore.GetStore().GetTransaction(ctx)
 	wm := &WriteMarkerEntity{}

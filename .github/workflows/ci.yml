@@ -1,6 +1,7 @@
 name: CI
 
 on:
+<<<<<<< HEAD
   workflow_dispatch:
     inputs:
       latest_tag:
@@ -12,85 +13,86 @@ on:
         #release:
         #types:
         # - published
+=======
+  push:
+    branches: [ master, staging ]
+
+  release:
+    types:
+      - published
+  pull_request:
+    paths-ignore:
+      - '**.md'
+>>>>>>> 6e76d29148e1426d8001cf18da91c2e0a5974b94
 
 env:
   BLOBBER_REGISTRY: ${{ secrets.BLOBBER_REGISTRY }}
   VALIDATOR_REGISTRY: ${{ secrets.VALIDATOR_REGISTRY }}
 
 jobs:
-  build:
-    runs-on: ubuntu-20.04
+  integration_test:
+    runs-on: [ubuntu-20.04]
+    timeout-minutes: 40
     steps:
-      - name: Install Go
+  
+      - name: Setup go 1.16
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14.x
-      - uses: actions/checkout@v2
-      # In this step, this action saves a list of existing images,
-      # the cache is created without them in the post run.
-      # It also restores the cache if it exists.
-      - uses: satackey/action-docker-layer-caching@v0.0.11
-        # Ignore the failure of a step and avoid terminating the job.
-        continue-on-error: true
-      - name: Build
+          go-version: '1.16' # The Go version to download (if necessary) and use.
+
+      - name: Clone Blobber
+        uses: actions/checkout@v1
+
+      - name: Build test environment and run tests
         run: |
+          sed -i '/#expose_ci_port/c\    ports:\n      - "5432:5432"' ./docker.local/b0docker-compose.yml
+          ./docker.local/bin/blobber.init.setup.sh
           docker network create --driver=bridge --subnet=198.18.0.0/15 --gateway=198.18.0.255 testnet0
+          ./docker.local/bin/build.base.sh
           ./docker.local/bin/build.blobber.sh
-  test:
-    runs-on: ubuntu-20.04
+          ./docker.local/bin/build.validator.sh
+          cd docker.local/blobber1
+          ../bin/blobber.start_bls.sh </dev/null &>/dev/null &
+          cd ../..
+      
+          go16=$(which go)
+          sudo $go16 test -tags bn256  ./... -args integration;
+  golangci:
+    name: lint
+    runs-on: [self-hosted, tests-suite]
     steps:
-    - name: Install Go
-      uses: actions/setup-go@v2
-      with:
-        go-version: 1.14.x
-    - uses: actions/checkout@v2
-    - name: Test
-      run: make test
-
-  lint:
-    runs-on: ubuntu-20.04
-    steps:
-      - name: Install Go
+      - name: Setup go 1.16
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14.x
+          go-version: '1.16' # The Go version to download (if necessary) and use.
       - uses: actions/checkout@v2
-      - name: Install golangci-lint
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.38.0
-          golangci-lint --version
-      - name: Lint
-        run: make lint
 
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: latest
+          args: --timeout=2m0s
 
-  generated-files-integrity:
-    runs-on: ubuntu-20.04
+  buf-build:
+    runs-on: [self-hosted, tests-suite]
     steps:
-      - name: Install Go
+      - name: Check out code
+        uses: actions/checkout@master
+        with:
+          fetch-depth: 1
+
+      - name: setup golang
+        if: success()
         uses: actions/setup-go@v2
         with:
-          go-version: 1.14.x
-      - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          cd code/go/0chain.net/blobbercore
-          sudo apt-get update
-          sudo apt-get install -y protobuf-compiler
-          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway \
-          github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2 \
-          google.golang.org/protobuf/cmd/protoc-gen-go \
-          google.golang.org/grpc/cmd/protoc-gen-go-grpc
-          git reset --hard
-      - name: Generate Files
-        run: |
-          cd code/go/0chain.net/blobbercore
-          ./scripts/generate-grpc.sh
-      - name: Fail if any file has changed
-        run: if output=$(git status --porcelain) && [ -z "$output" ]; then exit 0; else git status; exit 1; fi;
+          go-version: 1.16.x
+      - name: run buf commands
+        if: success()
+        run: make local
 
   dockerize_blobber:
-    runs-on: ubuntu-20.04
-    needs: test
+    runs-on: [self-hosted, build]
+    needs: integration_test
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
     - uses: actions/checkout@v2
@@ -113,8 +115,8 @@ jobs:
         TAG: ${{ steps.get_version.outputs.VERSION }}
 
   dockerize_validator:
-    runs-on: ubuntu-20.04
-    needs: test
+    runs-on: [self-hosted, build]
+    needs: integration_test
     if: github.event_name == 'release' && github.event.action == 'published'
     steps:
     - uses: actions/checkout@v2

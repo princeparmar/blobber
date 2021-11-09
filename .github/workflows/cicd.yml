@@ -1,8 +1,9 @@
-name: CICD_TEST_HERTZNER
+name: CICD-01
 
 on:
   workflow_dispatch:
     inputs:
+<<<<<<< HEAD
       latest_tag:
         description: 'type yes for building latest tag'
         default: 'no'
@@ -26,10 +27,22 @@ jobs:
           SHORT_SHA=$(echo $GITHUB_SHA | head -c 8)
           echo ::set-output name=BRANCH::${BRANCH}
           echo ::set-output name=VERSION::${BRANCH}-${SHORT_SHA}
+=======
+      image:
+        description: 'image tag'
+        required: true
+        default: latest
 
-      - name: Triggering build.yml for creating & pushing docker images.
-        uses: convictional/trigger-workflow-and-wait@v1.3.0
+jobs:
+  deploy:
+    runs-on: [self-hosted]
+>>>>>>> 6e76d29148e1426d8001cf18da91c2e0a5974b94
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: azure/setup-helm@v1
         with:
+<<<<<<< HEAD
           owner: 0chain
           repo: blobber
           github_token: ${{ secrets.CICD }}
@@ -142,3 +155,18 @@ jobs:
        - name: Deleting kubeconfig
          run: |
            rm -rf ~/.kube
+=======
+          version: 'v3.2.2'
+      - name: Setup helm repo
+        run: |
+          helm repo add 0chain-helm http://0chain-helm-chart.s3-website.us-east-2.amazonaws.com/helmCharts/
+          helm repo upgrade
+      - name: Setup kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.CICD01KC }}" | base64 -d > ~/.kube/config
+      - name: Setup chain
+        run: |
+          helm upgrade --install blobber -n helmtest --set blobber.blobberImage.tag=${{ github.event.inputs.image }} --set validator.validatorImage.tag=${{ github.event.inputs.image }} 0chain-helm/blobber
+          rm -rf ~/.kube
+>>>>>>> 6e76d29148e1426d8001cf18da91c2e0a5974b94

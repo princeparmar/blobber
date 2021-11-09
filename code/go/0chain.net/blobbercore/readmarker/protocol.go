@@ -5,17 +5,17 @@ import (
 	"encoding/json"
 	"time"
 
-	"0chain.net/blobbercore/allocation"
-	"0chain.net/blobbercore/constants"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/allocation"
+	"github.com/0chain/gosdk/constants"
 
-	"0chain.net/blobbercore/datastore"
-	"0chain.net/core/chain"
-	"0chain.net/core/common"
-	"0chain.net/core/encryption"
-	"0chain.net/core/node"
-	"0chain.net/core/transaction"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/core/encryption"
+	"github.com/0chain/blobber/code/go/0chain.net/core/node"
+	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
 
-	. "0chain.net/core/logging"
+	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
 	"go.uber.org/zap"
 )
 
@@ -35,12 +35,12 @@ func (rm *ReadMarkerEntity) VerifyMarker(ctx context.Context, sa *allocation.All
 		return common.NewError("read_marker_validation_failed", "Read Marker is not for the blobber")
 	}
 
-	clientPublicKey := ctx.Value(constants.CLIENT_KEY_CONTEXT_KEY).(string)
+	clientPublicKey := ctx.Value(constants.ContextKeyClientKey).(string)
 	if len(clientPublicKey) == 0 || clientPublicKey != rm.LatestRM.ClientPublicKey {
 		return common.NewError("read_marker_validation_failed", "Could not get the public key of the client")
 	}
 
-	clientID := ctx.Value(constants.CLIENT_CONTEXT_KEY).(string)
+	clientID := ctx.Value(constants.ContextKeyClient).(string)
 	if len(clientID) == 0 || clientID != rm.LatestRM.ClientID {
 		return common.NewError("read_marker_validation_failed", "Read Marker clientID does not match request clientID")
 	}

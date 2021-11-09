@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"0chain.net/blobbercore/datastore"
-	"0chain.net/core/common"
-	"0chain.net/core/encryption"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/core/encryption"
 
 	"gorm.io/datatypes"
 	"gorm.io/gorm"
@@ -90,12 +90,50 @@ type Ref struct {
 	UpdatedAt      time.Time       `gorm:"column:updated_at" dirlist:"updated_at" filelist:"updated_at"`
 
 	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at"` // soft deletion
+
+	ChunkSize int64 `gorm:"column:chunk_size" dirlist:"chunk_size" filelist:"chunk_size"`
+}
+
+type PaginatedRef struct { //Gorm smart select fields.
+	ID                  int64          `gorm:"column:id" json:"id,omitempty"`
+	Type                string         `gorm:"column:type" json:"type,omitempty"`
+	AllocationID        string         `gorm:"column:allocation_id" json:"allocation_id,omitempty"`
+	LookupHash          string         `gorm:"column:lookup_hash" json:"lookup_hash,omitempty"`
+	Name                string         `gorm:"column:name" json:"name,omitempty"`
+	Path                string         `gorm:"column:path" json:"path,omitempty"`
+	Hash                string         `gorm:"column:hash" json:"hash,omitempty"`
+	NumBlocks           int64          `gorm:"column:num_of_blocks" json:"num_blocks,omitempty"`
+	PathHash            string         `gorm:"column:path_hash" json:"path_hash,omitempty"`
+	ParentPath          string         `gorm:"column:parent_path" json:"parent_path,omitempty"`
+	PathLevel           int            `gorm:"column:level" json:"level,omitempty"`
+	CustomMeta          string         `gorm:"column:custom_meta" json:"custom_meta,omitempty"`
+	ContentHash         string         `gorm:"column:content_hash" json:"content_hash,omitempty"`
+	Size                int64          `gorm:"column:size" json:"size,omitempty"`
+	MerkleRoot          string         `gorm:"column:merkle_root" json:"merkle_root,omitempty"`
+	ActualFileSize      int64          `gorm:"column:actual_file_size" json:"actual_file_size,omitempty"`
+	ActualFileHash      string         `gorm:"column:actual_file_hash" json:"actual_file_hash,omitempty"`
+	MimeType            string         `gorm:"column:mimetype" json:"mimetype,omitempty"`
+	WriteMarker         string         `gorm:"column:write_marker" json:"write_marker,omitempty"`
+	ThumbnailSize       int64          `gorm:"column:thumbnail_size" json:"thumbnail_size,omitempty"`
+	ThumbnailHash       string         `gorm:"column:thumbnail_hash" json:"thumbnail_hash,omitempty"`
+	ActualThumbnailSize int64          `gorm:"column:actual_thumbnail_size" json:"actual_thumbnail_size,omitempty"`
+	ActualThumbnailHash string         `gorm:"column:actual_thumbnail_hash" json:"actual_thumbnail_hash,omitempty"`
+	EncryptedKey        string         `gorm:"column:encrypted_key" json:"encrypted_key,omitempty"`
+	Attributes          datatypes.JSON `gorm:"column:attributes" json:"attributes,omitempty"`
+
+	OnCloud   bool           `gorm:"column:on_cloud" json:"on_cloud,omitempty"`
+	CreatedAt time.Time      `gorm:"column:created_at" json:"created_at,omitempty"`
+	UpdatedAt time.Time      `gorm:"column:updated_at" json:"updated_at,omitempty"`
+	DeletedAt gorm.DeletedAt `gorm:"column:deleted_at" json:"-"` // soft deletion
+
+	ChunkSize int64 `gorm:"column:chunk_size" dirlist:"chunk_size" filelist:"chunk_size"`
 }
 
 func (Ref) TableName() string {
 	return "reference_objects"
 }
 
+// GetReferenceLookup hash(allocationID + ":" + path)
 func GetReferenceLookup(allocationID string, path string) string {
 	return encryption.Hash(allocationID + ":" + path)
 }
@@ -133,6 +171,7 @@ func (r *Ref) SetAttributes(attr *Attributes) (err error) {
 	return
 }
 
+// GetReference get FileRef with allcationID and path from postgres
 func GetReference(ctx context.Context, allocationID string, path string) (*Ref, error) {
 	ref := &Ref{}
 	db := datastore.GetStore().GetTransaction(ctx)
@@ -220,7 +259,7 @@ func (fr *Ref) GetFileHashData() string {
 	if len(fr.Attributes) == 0 {
 		fr.Attributes = datatypes.JSON("{}")
 	}
-	hashArray := make([]string, 0)
+	hashArray := make([]string, 0, 11)
 	hashArray = append(hashArray, fr.AllocationID)
 	hashArray = append(hashArray, fr.Type)
 	hashArray = append(hashArray, fr.Name)
@@ -231,17 +270,16 @@ func (fr *Ref) GetFileHashData() string {
 	hashArray = append(hashArray, strconv.FormatInt(fr.ActualFileSize, 10))
 	hashArray = append(hashArray, fr.ActualFileHash)
 	hashArray = append(hashArray, string(fr.Attributes))
+	hashArray = append(hashArray, strconv.FormatInt(fr.ChunkSize, 10))
+
 	return strings.Join(hashArray, ":")
 }
 
 func (fr *Ref) CalculateFileHash(ctx context.Context, saveToDB bool) (string, error) {
-	// fmt.Println("fileref name , path, hash", fr.Name, fr.Path, fr.Hash)
-	// fmt.Println("Fileref hash data: " + fr.GetFileHashData())
 	fr.Hash = encryption.Hash(fr.GetFileHashData())
-	// fmt.Println("Fileref hash : " + fr.Hash)
-	fr.NumBlocks = int64(math.Ceil(float64(fr.Size*1.0) / CHUNK_SIZE))
+	fr.NumBlocks = int64(math.Ceil(float64(fr.Size*1.0) / float64(fr.ChunkSize)))
 	fr.PathHash = GetReferenceLookup(fr.AllocationID, fr.Path)
-	fr.PathLevel = len(GetSubDirsFromPath(fr.Path)) + 1 //strings.Count(fr.Path, "/")
+	fr.PathLevel = len(GetSubDirsFromPath(fr.Path)) + 1
 	fr.LookupHash = GetReferenceLookup(fr.AllocationID, fr.Path)
 	var err error
 	if saveToDB {
@@ -251,6 +289,7 @@ func (fr *Ref) CalculateFileHash(ctx context.Context, saveToDB bool) (string, er
 }
 
 func (r *Ref) CalculateDirHash(ctx context.Context, saveToDB bool) (string, error) {
+	// empty directory, return hash directly
 	if len(r.Children) == 0 && !r.childrenLoaded {
 		return r.Hash, nil
 	}
@@ -273,15 +312,13 @@ func (r *Ref) CalculateDirHash(ctx context.Context, saveToDB bool) (string, erro
 		refNumBlocks += childRef.NumBlocks
 		size += childRef.Size
 	}
-	// fmt.Println("ref name and path, hash :" + r.Name + " " + r.Path + " " + r.Hash)
-	// fmt.Println("ref hash data: " + strings.Join(childHashes, ":"))
+
 	r.Hash = encryption.Hash(strings.Join(childHashes, ":"))
-	// fmt.Println("ref hash : " + r.Hash)
+
 	r.NumBlocks = refNumBlocks
 	r.Size = size
-	//fmt.Println("Ref Path hash: " + strings.Join(childPathHashes, ":"))
 	r.PathHash = encryption.Hash(strings.Join(childPathHashes, ":"))
-	r.PathLevel = len(GetSubDirsFromPath(r.Path)) + 1 //strings.Count(r.Path, "/")
+	r.PathLevel = len(GetSubDirsFromPath(r.Path)) + 1
 	r.LookupHash = GetReferenceLookup(r.AllocationID, r.Path)
 
 	var err error
@@ -341,11 +378,54 @@ func (r *Ref) Save(ctx context.Context) error {
 	return db.Save(r).Error
 }
 
+// GetListingData reflect and convert all fields into map[string]interface{}
 func (r *Ref) GetListingData(ctx context.Context) map[string]interface{} {
+	if r == nil {
+		return make(map[string]interface{})
+	}
+
 	if r.Type == FILE {
 		return GetListingFieldsMap(*r, FILE_LIST_TAG)
 	}
 	return GetListingFieldsMap(*r, DIR_LIST_TAG)
+}
+
+func ListingDataToRef(refMap map[string]interface{}) *Ref {
+	if len(refMap) < 1 {
+		return nil
+	}
+
+	ref := &Ref{}
+
+	refType, _ := refMap["type"].(string)
+	var tagName string
+	if refType == FILE {
+		tagName = FILE_LIST_TAG
+	} else {
+		tagName = DIR_LIST_TAG
+	}
+
+	t := reflect.TypeOf(ref).Elem()
+	v := reflect.ValueOf(ref).Elem()
+
+	// Iterate over all available fields and read the tag value
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+
+		// Get the field tag value
+		tag := field.Tag.Get(tagName)
+		// Skip if tag is not defined or ignored
+		if tag == "" || tag == "-" {
+			continue
+		}
+
+		val := refMap[tag]
+		if val != nil {
+			v.FieldByName(field.Name).Set(reflect.ValueOf(val))
+		}
+	}
+
+	return ref
 }
 
 func GetListingFieldsMap(refEntity interface{}, tagName string) map[string]interface{} {

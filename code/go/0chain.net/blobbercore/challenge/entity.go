@@ -4,11 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"time"
 
-	"0chain.net/blobbercore/datastore"
-	"0chain.net/blobbercore/reference"
-	"0chain.net/core/common"
-	"0chain.net/core/encryption"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/reference"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/core/encryption"
 
 	"gorm.io/datatypes"
 )
@@ -76,6 +77,9 @@ type ChallengeEntity struct {
 	ObjectPathString        datatypes.JSON        `json:"-" gorm:"column:object_path"`
 	ObjectPath              *reference.ObjectPath `json:"object_path" gorm:"-"`
 	Created                 common.Timestamp      `json:"created" gorm:"-"`
+
+	CreatedAt time.Time `gorm:"created_at"`
+	UpdatedAt time.Time `gorm:"updated_at"`
 }
 
 func (ChallengeEntity) TableName() string {

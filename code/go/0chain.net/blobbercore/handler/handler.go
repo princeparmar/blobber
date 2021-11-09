@@ -4,59 +4,74 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"os"
 	"runtime/pprof"
 	"time"
 
-	"0chain.net/blobbercore/config"
-	"0chain.net/blobbercore/constants"
-	"0chain.net/blobbercore/datastore"
-	"0chain.net/blobbercore/stats"
-	"0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/readmarker"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/reference"
+	"github.com/0chain/gosdk/zboxcore/fileref"
+	"gorm.io/gorm"
 
-	. "0chain.net/core/logging"
 	"go.uber.org/zap"
 
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/config"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/stats"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
+	"github.com/0chain/gosdk/constants"
 	"github.com/gorilla/mux"
 )
 
 var storageHandler StorageHandler
 
-func GetMetaDataStore() *datastore.Store {
+func GetMetaDataStore() datastore.Store {
 	return datastore.GetStore()
 }
 
 /*SetupHandlers sets up the necessary API end points */
 func SetupHandlers(r *mux.Router) {
-	//object operations
-	r.HandleFunc("/v1/file/upload/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(UploadHandler))))
-	r.HandleFunc("/v1/file/download/{allocation}", common.UserRateLimit(common.ToByteStream(WithConnection(DownloadHandler))))
-	r.HandleFunc("/v1/file/rename/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(RenameHandler))))
-	r.HandleFunc("/v1/file/copy/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(CopyHandler))))
-	r.HandleFunc("/v1/file/attributes/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(UpdateAttributesHandler))))
 
-	r.HandleFunc("/v1/connection/commit/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(CommitHandler))))
-	r.HandleFunc("/v1/file/commitmetatxn/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(CommitMetaTxnHandler))))
-	r.HandleFunc("/v1/file/collaborator/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(CollaboratorHandler))))
-	r.HandleFunc("/v1/file/calculatehash/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithConnection(CalculateHashHandler))))
+	r.Use(useRecovery, useCORS(), common.UseUserRateLimit)
+
+	//object operations
+	r.HandleFunc("/v1/file/upload/{allocation}", common.ToJSONResponse(WithConnection(UploadHandler)))
+	r.HandleFunc("/v1/file/download/{allocation}", common.ToByteStream(WithConnection(DownloadHandler))).Methods("POST")
+	r.HandleFunc("/v1/file/rename/{allocation}", common.ToJSONResponse(WithConnection(RenameHandler)))
+	r.HandleFunc("/v1/file/copy/{allocation}", common.ToJSONResponse(WithConnection(CopyHandler)))
+	r.HandleFunc("/v1/file/attributes/{allocation}", common.ToJSONResponse(WithConnection(UpdateAttributesHandler)))
+	r.HandleFunc("/v1/dir/{allocation}", common.ToJSONResponse(WithConnection(CreateDirHandler))).Methods("POST")
+	r.HandleFunc("/v1/dir/{allocation}", common.ToJSONResponse(WithConnection(CreateDirHandler))).Methods("DELETE")
+	r.HandleFunc("/v1/dir/rename/{allocation}", common.ToJSONResponse(WithConnection(CreateDirHandler))).Methods("POST")
+
+	r.HandleFunc("/v1/connection/commit/{allocation}", common.ToJSONResponse(WithConnection(CommitHandler)))
+	r.HandleFunc("/v1/file/commitmetatxn/{allocation}", common.ToJSONResponse(WithConnection(CommitMetaTxnHandler)))
+	r.HandleFunc("/v1/file/collaborator/{allocation}", common.ToJSONResponse(WithConnection(CollaboratorHandler)))
+	r.HandleFunc("/v1/file/calculatehash/{allocation}", common.ToJSONResponse(WithConnection(CalculateHashHandler)))
 
 	//object info related apis
-	r.HandleFunc("/allocation", common.UserRateLimit(common.ToJSONResponse(WithConnection(AllocationHandler))))
-	r.HandleFunc("/v1/file/meta/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithReadOnlyConnection(FileMetaHandler))))
-	r.HandleFunc("/v1/file/stats/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithReadOnlyConnection(FileStatsHandler))))
-	r.HandleFunc("/v1/file/list/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithReadOnlyConnection(ListHandler))))
-	r.HandleFunc("/v1/file/objectpath/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithReadOnlyConnection(ObjectPathHandler))))
-	r.HandleFunc("/v1/file/referencepath/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithReadOnlyConnection(ReferencePathHandler))))
-	r.HandleFunc("/v1/file/objecttree/{allocation}", common.UserRateLimit(common.ToJSONResponse(WithReadOnlyConnection(ObjectTreeHandler))))
-
+	r.HandleFunc("/allocation", common.ToJSONResponse(WithConnection(AllocationHandler)))
+	r.HandleFunc("/v1/file/meta/{allocation}", common.ToJSONResponse(WithReadOnlyConnection(FileMetaHandler)))
+	r.HandleFunc("/v1/file/stats/{allocation}", common.ToJSONResponse(WithReadOnlyConnection(FileStatsHandler)))
+	r.HandleFunc("/v1/file/list/{allocation}", common.ToJSONResponse(WithReadOnlyConnection(ListHandler)))
+	r.HandleFunc("/v1/file/objectpath/{allocation}", common.ToJSONResponse(WithReadOnlyConnection(ObjectPathHandler)))
+	r.HandleFunc("/v1/file/referencepath/{allocation}", common.ToJSONResponse(WithReadOnlyConnection(ReferencePathHandler)))
+	r.HandleFunc("/v1/file/objecttree/{allocation}", common.ToJSONResponse(WithReadOnlyConnection(ObjectTreeHandler)))
+	r.HandleFunc("/v1/file/refs/{allocation}", common.ToJSONResponse(WithReadOnlyConnection(RefsHandler))).Methods("GET")
 	//admin related
-	r.HandleFunc("/_debug", common.UserRateLimit(common.ToJSONResponse(DumpGoRoutines)))
-	r.HandleFunc("/_config", common.UserRateLimit(common.ToJSONResponse(GetConfig)))
-	r.HandleFunc("/_stats", common.UserRateLimit(stats.StatsHandler))
-	r.HandleFunc("/_statsJSON", common.UserRateLimit(common.ToJSONResponse(stats.StatsJSONHandler)))
-	r.HandleFunc("/_cleanupdisk", common.UserRateLimit(common.ToJSONResponse(WithReadOnlyConnection(CleanupDiskHandler))))
-	r.HandleFunc("/getstats", common.UserRateLimit(common.ToJSONResponse(stats.GetStatsHandler)))
+	r.HandleFunc("/_debug", common.ToJSONResponse(DumpGoRoutines))
+	r.HandleFunc("/_config", common.ToJSONResponse(GetConfig))
+	r.HandleFunc("/_stats", stats.StatsHandler)
+	r.HandleFunc("/_statsJSON", common.ToJSONResponse(stats.StatsJSONHandler))
+	r.HandleFunc("/_cleanupdisk", common.ToJSONResponse(WithReadOnlyConnection(CleanupDiskHandler)))
+	r.HandleFunc("/getstats", common.ToJSONResponse(stats.GetStatsHandler))
+
+	//marketplace related
+	r.HandleFunc("/v1/marketplace/shareinfo/{allocation}", common.ToJSONResponse(WithConnection(MarketPlaceShareInfoHandler)))
 }
 
 func WithReadOnlyConnection(handler common.JSONResponderF) common.JSONResponderF {
@@ -102,14 +117,14 @@ func WithConnection(handler common.JSONResponderF) common.JSONResponderF {
 
 func setupHandlerContext(ctx context.Context, r *http.Request) context.Context {
 	var vars = mux.Vars(r)
-	ctx = context.WithValue(ctx, constants.CLIENT_CONTEXT_KEY,
+	ctx = context.WithValue(ctx, constants.ContextKeyClient,
 		r.Header.Get(common.ClientHeader))
-	ctx = context.WithValue(ctx, constants.CLIENT_KEY_CONTEXT_KEY,
+	ctx = context.WithValue(ctx, constants.ContextKeyClientKey,
 		r.Header.Get(common.ClientKeyHeader))
-	ctx = context.WithValue(ctx, constants.ALLOCATION_CONTEXT_KEY,
+	ctx = context.WithValue(ctx, constants.ContextKeyAllocation,
 		vars["allocation"])
 	// signature is not requered for all requests, but if header is empty it won`t affect anything
-	ctx = context.WithValue(ctx, constants.CLIENT_SIGNATURE_HEADER_KEY, r.Header.Get(common.ClientSignatureHeader))
+	ctx = context.WithValue(ctx, constants.ContextKeyClientSignatureHeaderKey, r.Header.Get(common.ClientSignatureHeader))
 	return ctx
 }
 
@@ -240,6 +255,17 @@ func ObjectTreeHandler(ctx context.Context, r *http.Request) (interface{}, error
 	return response, nil
 }
 
+func RefsHandler(ctx context.Context, r *http.Request) (interface{}, error) {
+	ctx = setupHandlerContext(ctx, r)
+
+	response, err := storageHandler.GetRefs(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
 func RenameHandler(ctx context.Context, r *http.Request) (interface{}, error) {
 	ctx = setupHandlerContext(ctx, r)
 	response, err := storageHandler.RenameObject(ctx, r)
@@ -253,6 +279,17 @@ func RenameHandler(ctx context.Context, r *http.Request) (interface{}, error) {
 func CopyHandler(ctx context.Context, r *http.Request) (interface{}, error) {
 	ctx = setupHandlerContext(ctx, r)
 	response, err := storageHandler.CopyObject(ctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	return response, nil
+}
+
+/*CreateDirHandler is the handler to respond to create dir for allocation*/
+func CreateDirHandler(ctx context.Context, r *http.Request) (interface{}, error) {
+	ctx = setupHandlerContext(ctx, r)
+	response, err := storageHandler.CreateDir(ctx, r)
 	if err != nil {
 		return nil, err
 	}
@@ -315,4 +352,141 @@ func GetConfig(ctx context.Context, r *http.Request) (interface{}, error) {
 func CleanupDiskHandler(ctx context.Context, r *http.Request) (interface{}, error) {
 	err := CleanupDiskFiles(ctx)
 	return "cleanup", err
+}
+
+func RevokeShare(ctx context.Context, r *http.Request) (interface{}, error) {
+	ctx = setupHandlerContext(ctx, r)
+
+	allocationID := ctx.Value(constants.ContextKeyAllocation).(string)
+	allocationObj, err := storageHandler.verifyAllocation(ctx, allocationID, true)
+	if err != nil {
+		return nil, common.NewError("invalid_parameters", "Invalid allocation id passed."+err.Error())
+	}
+
+	sign := r.Header.Get(common.ClientSignatureHeader)
+	allocation, ok := mux.Vars(r)["allocation"]
+	if !ok {
+		return false, common.NewError("invalid_params", "Missing allocation tx")
+	}
+	valid, err := verifySignatureFromRequest(allocation, sign, allocationObj.OwnerPublicKey)
+	if !valid || err != nil {
+		return nil, common.NewError("invalid_signature", "Invalid signature")
+	}
+
+	path := r.FormValue("path")
+	refereeClientID := r.FormValue("refereeClientID")
+	filePathHash := fileref.GetReferenceLookup(allocationID, path)
+	_, err = reference.GetReferenceFromLookupHash(ctx, allocationID, filePathHash)
+	if err != nil {
+		return nil, common.NewError("invalid_parameters", "Invalid file path. "+err.Error())
+	}
+	clientID := ctx.Value(constants.ContextKeyClient).(string)
+	if clientID != allocationObj.OwnerID {
+		return nil, common.NewError("invalid_operation", "Operation needs to be performed by the owner of the allocation")
+	}
+	err = reference.DeleteShareInfo(ctx, reference.ShareInfo{
+		ClientID:     refereeClientID,
+		FilePathHash: filePathHash,
+	})
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		resp := map[string]interface{}{
+			"status":  http.StatusNotFound,
+			"message": "Path not found",
+		}
+		return resp, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	resp := map[string]interface{}{
+		"status":  http.StatusNoContent,
+		"message": "Path successfully removed from allocation",
+	}
+	return resp, nil
+}
+
+func InsertShare(ctx context.Context, r *http.Request) (interface{}, error) {
+	ctx = setupHandlerContext(ctx, r)
+
+	allocationID := ctx.Value(constants.ContextKeyAllocation).(string)
+	allocationObj, err := storageHandler.verifyAllocation(ctx, allocationID, true)
+	if err != nil {
+		return nil, common.NewError("invalid_parameters", "Invalid allocation id passed."+err.Error())
+	}
+
+	sign := r.Header.Get(common.ClientSignatureHeader)
+	allocation, ok := mux.Vars(r)["allocation"]
+	if !ok {
+		return false, common.NewError("invalid_params", "Missing allocation tx")
+	}
+	valid, err := verifySignatureFromRequest(allocation, sign, allocationObj.OwnerPublicKey)
+	if !valid || err != nil {
+		return nil, common.NewError("invalid_signature", "Invalid signature")
+	}
+
+	encryptionPublicKey := r.FormValue("encryption_public_key")
+	authTicketString := r.FormValue("auth_ticket")
+	authTicket := &readmarker.AuthTicket{}
+
+	err = json.Unmarshal([]byte(authTicketString), &authTicket)
+	if err != nil {
+		return false, common.NewError("invalid_parameters", "Error parsing the auth ticket for download."+err.Error())
+	}
+
+	fileref, err := reference.GetReferenceFromLookupHash(ctx, allocationID, authTicket.FilePathHash)
+	if err != nil {
+		return nil, common.NewError("invalid_parameters", "Invalid file path. "+err.Error())
+	}
+
+	authTicketVerified, err := storageHandler.verifyAuthTicket(ctx, authTicketString, allocationObj, fileref, authTicket.ClientID)
+	if !authTicketVerified {
+		return nil, common.NewError("auth_ticket_verification_failed", "Could not verify the auth ticket. "+err.Error())
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	// dummy, to avoid input and sql error
+	if len(authTicket.ClientID) != 64 || len(authTicket.OwnerID) != 64 {
+		return nil, common.NewError("share_info_insert", "Wrong ownerID or clientID")
+	}
+
+	shareInfo := reference.ShareInfo{
+		OwnerID:                   authTicket.OwnerID,
+		ClientID:                  authTicket.ClientID,
+		FilePathHash:              authTicket.FilePathHash,
+		ReEncryptionKey:           authTicket.ReEncryptionKey,
+		ClientEncryptionPublicKey: encryptionPublicKey,
+		ExpiryAt:                  common.ToTime(authTicket.Expiration),
+	}
+
+	existingShare, _ := reference.GetShareInfo(ctx, authTicket.ClientID, authTicket.FilePathHash)
+
+	if existingShare != nil && len(existingShare.OwnerID) > 0 {
+		err = reference.UpdateShareInfo(ctx, shareInfo)
+	} else {
+		err = reference.AddShareInfo(ctx, shareInfo)
+	}
+	if err != nil {
+		return nil, common.NewError("share_info_insert", "Unable to save share info")
+	}
+
+	resp := map[string]interface{}{
+		"message": "Share info added successfully",
+	}
+
+	return resp, nil
+}
+
+func MarketPlaceShareInfoHandler(ctx context.Context, r *http.Request) (interface{}, error) {
+	if r.Method == "DELETE" {
+		return RevokeShare(ctx, r)
+	}
+
+	if r.Method == "POST" {
+		return InsertShare(ctx, r)
+	}
+
+	return nil, errors.New("invalid request method, only POST is allowed")
 }

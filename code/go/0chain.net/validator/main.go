@@ -10,18 +10,18 @@ import (
 	"strconv"
 	"time"
 
-	"0chain.net/core/build"
-	"0chain.net/core/chain"
+	"github.com/0chain/blobber/code/go/0chain.net/core/build"
+	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
 
-	"0chain.net/core/common"
-	"0chain.net/core/encryption"
-	"0chain.net/core/logging"
-	. "0chain.net/core/logging"
-	"0chain.net/core/node"
-	"0chain.net/core/transaction"
-	"0chain.net/core/util"
-	"0chain.net/validatorcore/config"
-	"0chain.net/validatorcore/storage"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/core/encryption"
+	"github.com/0chain/blobber/code/go/0chain.net/core/logging"
+	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
+	"github.com/0chain/blobber/code/go/0chain.net/core/node"
+	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
+	"github.com/0chain/blobber/code/go/0chain.net/core/util"
+	"github.com/0chain/blobber/code/go/0chain.net/validatorcore/config"
+	"github.com/0chain/blobber/code/go/0chain.net/validatorcore/storage"
 
 	"github.com/0chain/gosdk/zcncore"
 	"github.com/gorilla/handlers"
@@ -44,11 +44,12 @@ func main() {
 	logDir := flag.String("log_dir", "", "log_dir")
 	portString := flag.String("port", "", "port")
 	hostname := flag.String("hostname", "", "hostname")
+	configDir := flag.String("config_dir", "./config", "config_dir")
 
 	flag.Parse()
 
 	config.SetupDefaultConfig()
-	config.SetupConfig()
+	config.SetupConfig(*configDir)
 
 	config.Configuration.DeploymentMode = byte(*deploymentMode)
 

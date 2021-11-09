@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"path/filepath"
 
-	"0chain.net/blobbercore/reference"
-	"0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/reference"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
 
 	"gorm.io/datatypes"
 )
@@ -120,6 +120,7 @@ func (rf *CopyFileChange) processCopyRefs(ctx context.Context, affectedRef *refe
 		newFile.ActualThumbnailSize = affectedRef.ActualThumbnailSize
 		newFile.EncryptedKey = affectedRef.EncryptedKey
 		newFile.Attributes = datatypes.JSON(string(affectedRef.Attributes))
+		newFile.ChunkSize = affectedRef.ChunkSize
 
 		destRef.AddChild(newFile)
 	}

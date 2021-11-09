@@ -1,20 +1,21 @@
 package handler
 
 import (
-	"sync"
-	"time"
-	"errors"
 	"context"
 	"encoding/json"
-	"go.uber.org/zap"
+	"errors"
+	"sync"
+	"time"
+
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/config"
+	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
+	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
+	"github.com/0chain/blobber/code/go/0chain.net/core/node"
+	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
+	"github.com/0chain/blobber/code/go/0chain.net/core/util"
 
 	"github.com/0chain/gosdk/zcncore"
-	"0chain.net/blobbercore/config"
-	"0chain.net/core/chain"
-	"0chain.net/core/node"
-	"0chain.net/core/transaction"
-	"0chain.net/core/util"
-	. "0chain.net/core/logging"
+	"go.uber.org/zap"
 )
 
 const (
@@ -93,7 +94,6 @@ func getStorageNode() (*transaction.StorageNode, error) {
 
 // Add or update blobber on blockchain
 func BlobberAdd(ctx context.Context) (string, error) {
-	time.Sleep(transaction.SLEEP_FOR_TXN_CONFIRMATION * time.Second)
 
 	// initialize storage node (ie blobber)
 	txn, err := transaction.NewTransactionEntity()
@@ -152,7 +152,6 @@ func BlobberHealthCheck(ctx context.Context) (string, error) {
 }
 
 func TransactionVerify(txnHash string) (t *transaction.Transaction, err error) {
-	time.Sleep(transaction.SLEEP_FOR_TXN_CONFIRMATION * time.Second)
 
 	for i := 0; i < util.MAX_RETRIES; i++ {
 		time.Sleep(transaction.SLEEP_FOR_TXN_CONFIRMATION * time.Second)
@@ -161,7 +160,7 @@ func TransactionVerify(txnHash string) (t *transaction.Transaction, err error) {
 		}
 	}
 
-	return
+	return nil, errors.New("[txn]max retries exceeded with " + txnHash)
 }
 
 func WalletRegister() error {

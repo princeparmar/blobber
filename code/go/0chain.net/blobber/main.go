@@ -6,33 +6,33 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"net/http"
 	"os"
 	"runtime"
 	"strconv"
 	"time"
-	"go.uber.org/zap"
-	"github.com/gorilla/handlers"
-	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
+
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/allocation"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/challenge"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/config"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/datastore"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/filestore"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/handler"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/readmarker"
+	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/writemarker"
+	"github.com/0chain/blobber/code/go/0chain.net/core/build"
+	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/core/encryption"
+	"github.com/0chain/blobber/code/go/0chain.net/core/logging"
+	. "github.com/0chain/blobber/code/go/0chain.net/core/logging"
+	"github.com/0chain/blobber/code/go/0chain.net/core/node"
+	"github.com/0chain/blobber/code/go/0chain.net/core/transaction"
 
 	"github.com/0chain/gosdk/zcncore"
-	"0chain.net/blobbercore/allocation"
-	"0chain.net/blobbercore/challenge"
-	"0chain.net/blobbercore/config"
-	"0chain.net/blobbercore/datastore"
-	"0chain.net/blobbercore/filestore"
-	"0chain.net/blobbercore/handler"
-	"0chain.net/blobbercore/readmarker"
-	"0chain.net/blobbercore/writemarker"
-	"0chain.net/core/build"
-	"0chain.net/core/chain"
-	"0chain.net/core/common"
-	"0chain.net/core/encryption"
-	"0chain.net/core/node"
-	"0chain.net/core/logging"
-	. "0chain.net/core/logging"
+	"github.com/gorilla/mux"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 var startTime time.Time
@@ -41,7 +41,7 @@ var filesDir *string
 var metadataDB *string
 
 func initHandlers(r *mux.Router) {
-	r.HandleFunc("/", func (w http.ResponseWriter, r *http.Request) {
+	r.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		mc := chain.GetServerChain()
 
 		fmt.Fprintf(w, "<div>Running since %v ...\n", startTime)
@@ -136,6 +136,21 @@ func setupWorkerConfig() {
 	config.Configuration.MaxStake = int64(viper.GetFloat64("max_stake") * 1e10)
 	config.Configuration.NumDelegates = viper.GetInt("num_delegates")
 	config.Configuration.ServiceCharge = viper.GetFloat64("service_charge")
+
+	config.Configuration.MinSubmit = viper.GetInt("min_submit")
+	if config.Configuration.MinSubmit < 1 {
+		config.Configuration.MinSubmit = 50
+	} else if config.Configuration.MinSubmit > 100 {
+		config.Configuration.MinSubmit = 100
+	}
+	config.Configuration.MinConfirmation = viper.GetInt("min_confirmation")
+	if config.Configuration.MinConfirmation < 1 {
+		config.Configuration.MinConfirmation = 50
+	} else if config.Configuration.MinConfirmation > 100 {
+		config.Configuration.MinConfirmation = 100
+	}
+
+	transaction.MinConfirmation = config.Configuration.MinConfirmation
 }
 
 func setupMinioConfig(reader io.Reader) error {
@@ -285,7 +300,7 @@ func healthCheckOnChainWorker() {
 
 func setup(logDir string) error {
 	// init blockchain related stuff
-	zcncore.SetLogFile(logDir + "/0chainBlobber.log", false)
+	zcncore.SetLogFile(logDir+"/0chainBlobber.log", false)
 	zcncore.SetLogLevel(3)
 	if err := zcncore.InitZCNSDK(serverChain.BlockWorker, config.Configuration.SignatureScheme); err != nil {
 		return err
@@ -322,6 +337,9 @@ func setup(logDir string) error {
 // }
 
 func main() {
+
+	grpcPortString := ""
+
 	deploymentMode := flag.Int("deployment_mode", 2, "deployment_mode")
 	keysFile := flag.String("keys_file", "", "keys_file")
 	minioFile := flag.String("minio_file", "", "minio_file")
@@ -329,13 +347,16 @@ func main() {
 	metadataDB = flag.String("db_dir", "", "db_dir")
 	logDir := flag.String("log_dir", "", "log_dir")
 	portString := flag.String("port", "", "port")
-	grpcPortString := flag.String("grpc_port", "", "grpc_port")
 	hostname := flag.String("hostname", "", "hostname")
+	configDir := flag.String("config_dir", "./config", "config_dir")
+
+	flag.StringVar(&grpcPortString, "grpc_port", "", "grpc_port")
 
 	flag.Parse()
 
 	config.SetupDefaultConfig()
-	config.SetupConfig()
+
+	config.SetupConfig(*configDir)
 
 	config.Configuration.DeploymentMode = byte(*deploymentMode)
 
@@ -362,10 +383,6 @@ func main() {
 
 	if *portString == "" {
 		panic("Please specify --port which is the port on which requests are accepted")
-	}
-
-	if *grpcPortString == "" {
-		panic("Please specify --grpc_port which is the grpc port on which requests are accepted")
 	}
 
 	reader, err := os.Open(*keysFile)
@@ -436,36 +453,18 @@ func main() {
 
 	var server *http.Server
 
-	// setup CORS
 	r := mux.NewRouter()
 
-	headersOk := handlers.AllowedHeaders([]string{
-		"X-Requested-With", "X-App-Client-ID",
-		"X-App-Client-Key", "Content-Type",
-		"X-App-Client-Signature",
-	})
-
-	// Allow anybody to access API.
-	// originsOk := handlers.AllowedOriginValidator(isValidOrigin)
-	originsOk := handlers.AllowedOrigins([]string{"*"})
-
-	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT",
-		"DELETE", "OPTIONS"})
-
-	rl := common.ConfigRateLimits()
+	common.ConfigRateLimits()
 	initHandlers(r)
 
-	grpcServer := handler.NewServerWithMiddlewares(rl)
-	handler.RegisterGRPCServices(r, grpcServer)
-
-	rHandler := handlers.CORS(originsOk, headersOk, methodsOk)(r)
 	if config.Development() {
 		// No WriteTimeout setup to enable pprof
 		server = &http.Server{
 			Addr:              address,
 			ReadHeaderTimeout: 30 * time.Second,
 			MaxHeaderBytes:    1 << 20,
-			Handler:           rHandler,
+			Handler:           r,
 		}
 	} else {
 		server = &http.Server{
@@ -474,20 +473,19 @@ func main() {
 			WriteTimeout:      30 * time.Second,
 			IdleTimeout:       30 * time.Second,
 			MaxHeaderBytes:    1 << 20,
-			Handler:           rHandler,
+			Handler:           r,
 		}
 	}
 	common.HandleShutdown(server)
 	handler.HandleShutdown(common.GetRootContext())
 
 	Logger.Info("Ready to listen to the requests")
+
+	if config.Development() {
+		go startGRPCServer(*r, grpcPortString)
+	}
+
 	startTime = time.Now().UTC()
-	go func(grpcPort string) {
-		lis, err := net.Listen("tcp", fmt.Sprintf(":%s", grpcPort))
-		if err != nil {
-			log.Fatalf("failed to listen: %v", err)
-		}
-		log.Fatal(grpcServer.Serve(lis))
-	}(*grpcPortString)
+
 	log.Fatal(server.ListenAndServe())
 }

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"testing"
 
-	"0chain.net/core/common"
-	"0chain.net/core/config"
-	"0chain.net/core/encryption"
-	"0chain.net/validatorcore/storage/writemarker"
+	"github.com/0chain/blobber/code/go/0chain.net/core/common"
+	"github.com/0chain/blobber/code/go/0chain.net/core/config"
+	"github.com/0chain/blobber/code/go/0chain.net/core/encryption"
+	"github.com/0chain/blobber/code/go/0chain.net/validatorcore/storage/writemarker"
 
 	"github.com/0chain/gosdk/core/zcncrypto"
 	"github.com/stretchr/testify/assert"
@@ -18,7 +18,7 @@ func TestWriteMarker_GetHashData(t *testing.T) {
 	wm, wallet, err := setupEntityTest(t)
 	require.NoError(t, err)
 
-	want := fmt.Sprintf("%v:%v:%v:%v:%v:%v:%v", "alloc_root", "prev_alloc_root", "alloc_id", "blobber_id", wallet.ClientID, 1, common.Now())
+	want := fmt.Sprintf("%v:%v:%v:%v:%v:%v:%v", "alloc_root", "prev_alloc_root", "alloc_id", "blobber_id", wallet.ClientID, 1, wm.Timestamp)
 	got := wm.GetHashData()
 	assert.Equal(t, want, got)
 }
