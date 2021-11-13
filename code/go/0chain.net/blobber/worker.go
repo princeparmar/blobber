@@ -38,7 +38,9 @@ func keepAliveOnChain() {
 
 	for {
 		time.Sleep(REPEAT_DELAY * time.Second)
-		if err := healthCheckOnChain(); err != nil {
+		err := handler.HealthCheckOnChain()
+		handler.SetBlobberHealthError(err)
+		if err != nil {
 			continue // pass // required by linting
 		}
 	}

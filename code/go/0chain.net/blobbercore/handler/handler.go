@@ -6,6 +6,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/0chain/blobber/code/go/0chain.net/core/build"
+	"github.com/0chain/blobber/code/go/0chain.net/core/chain"
+	"github.com/0chain/blobber/code/go/0chain.net/core/node"
+	"github.com/0chain/gosdk/zcncore"
 	"net/http"
 	"os"
 	"runtime/pprof"
@@ -28,6 +33,7 @@ import (
 )
 
 var storageHandler StorageHandler
+var StartTime time.Time
 
 func GetMetaDataStore() datastore.Store {
 	return datastore.GetStore()
@@ -65,7 +71,7 @@ func SetupHandlers(r *mux.Router) {
 	//admin related
 	r.HandleFunc("/_debug", common.ToJSONResponse(DumpGoRoutines))
 	r.HandleFunc("/_config", common.ToJSONResponse(GetConfig))
-	r.HandleFunc("/_stats", stats.StatsHandler)
+	r.HandleFunc("/_stats", StatsHandler)
 	r.HandleFunc("/_statsJSON", common.ToJSONResponse(stats.StatsJSONHandler))
 	r.HandleFunc("/_cleanupdisk", common.ToJSONResponse(WithReadOnlyConnection(CleanupDiskHandler)))
 	r.HandleFunc("/getstats", common.ToJSONResponse(stats.GetStatsHandler))
@@ -126,6 +132,31 @@ func setupHandlerContext(ctx context.Context, r *http.Request) context.Context {
 	// signature is not requered for all requests, but if header is empty it won`t affect anything
 	ctx = context.WithValue(ctx, constants.ContextKeyClientSignatureHeaderKey, r.Header.Get(common.ClientSignatureHeader))
 	return ctx
+}
+
+func HomepageHandler(w http.ResponseWriter, r *http.Request) {
+	mc := chain.GetServerChain()
+
+	fmt.Fprintf(w, "<div>Working on the chain: %v</div>\n", mc.ID)
+	fmt.Fprintf(w,
+		"<div>I am a blobber with <ul><li>id:%v</li><li>public_key:%v</li><li>build_tag:%v</li></ul></div>\n",
+		node.Self.ID, node.Self.PublicKey, build.BuildTag,
+	)
+
+	fmt.Fprintf(w, "<div>Miners ...\n")
+	network := zcncore.GetNetwork()
+	for _, miner := range network.Miners {
+		fmt.Fprintf(w, "%v\n", miner)
+	}
+	fmt.Fprintf(w, "</div>\n")
+	fmt.Fprintf(w, "<div>Sharders ...\n")
+	for _, sharder := range network.Sharders {
+		fmt.Fprintf(w, "%v\n", sharder)
+	}
+	fmt.Fprintf(w, "</div>\n")
+	fmt.Fprintf(w, "</br>")
+	fmt.Fprintf(w, "<div>Running since %v (Total elapsed time: %v)</div>\n", StartTime.Format(common.DateTimeFormat), time.Since(StartTime))
+	fmt.Fprintf(w, "</br>")
 }
 
 func AllocationHandler(ctx context.Context, r *http.Request) (interface{}, error) {
@@ -329,6 +360,23 @@ func CalculateHashHandler(ctx context.Context, r *http.Request) (interface{}, er
 	return response, nil
 }
 
+func StatsHandler(w http.ResponseWriter, r *http.Request) {
+	HTMLHeader(w,"Blobber Diagnostics")
+	PrintCSS(w)
+	HomepageHandler(w,r)
+	err := GetBlobberHealthError()
+	if err != nil {
+		r.Header.Set("health", "✗")
+		//fmt.Fprintf(w, "<div>Blobber Heath Check: Failed</div>\n")
+		//fmt.Fprintf(w, "<div>Blobber Heath Check Error: %s</div>\n",err.Error())
+	} else {
+		r.Header.Set("health", "✔")
+	}
+
+	stats.StatsHandler(w,r)
+	HTMLFooter(w)
+}
+
 //nolint:gosimple // need more time to verify
 func HandleShutdown(ctx context.Context) {
 	go func() {
@@ -489,4 +537,30 @@ func MarketPlaceShareInfoHandler(ctx context.Context, r *http.Request) (interfac
 	}
 
 	return nil, errors.New("invalid request method, only POST is allowed")
+}
+
+//PrintCSS - print the common css elements
+func PrintCSS(w http.ResponseWriter) {
+	fmt.Fprintf(w, "<style>\n")
+	fmt.Fprintf(w, ".number { text-align: right; }\n")
+	fmt.Fprintf(w, ".fixed-text { overflow:hidden;white-space: nowrap;word-break: break-all;word-wrap: break-word; text-overflow: ellipsis; }\n")
+	fmt.Fprintf(w, ".menu li { list-style-type: none; }\n")
+	fmt.Fprintf(w, "table, td, th { border: 1px solid black;  border-collapse: collapse;}\n")
+	fmt.Fprintf(w, ".tname { width: 70%%}\n")
+	fmt.Fprintf(w, "tr.header { background-color: #E0E0E0;  }\n")
+	fmt.Fprintf(w, ".inactive { background-color: #F44336; }\n")
+	fmt.Fprintf(w, ".warning { background-color: #FFEB3B; }\n")
+	fmt.Fprintf(w, ".optimal { color: #1B5E20; }\n")
+	fmt.Fprintf(w, ".slow { font-style: italic; }\n")
+	fmt.Fprintf(w, ".bold {font-weight:bold;}")
+	fmt.Fprintf(w, "tr.green td {background-color:light-green;}")
+	fmt.Fprintf(w, "tr.grey td {background-color:light-grey;}")
+	fmt.Fprintf(w, "</style>")
+}
+
+func HTMLHeader(w http.ResponseWriter, title string)  {
+	fmt.Fprintf(w,"<!DOCTYPE html><html><head><title>%s</title></head><body>",title)
+}
+func HTMLFooter(w http.ResponseWriter)  {
+	fmt.Fprintf(w,"</body></html>")
 }

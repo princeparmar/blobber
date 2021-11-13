@@ -41,135 +41,153 @@ var funcMap = template.FuncMap{
 	},
 }
 
-const tpl = `<!DOCTYPE html>
-<html>
-  <head>
-    <title>Blobber Diagnostics</title>
-  </head>
-  <body>
-    <h1>
-      Blobber Stats
-    </h1>
-    <table border="1">
-      <tr>
-        <td>ID</td>
-        <td>{{ .ClientID }}</td>
+const tpl = `
+    <table style='border-collapse: collapse;'>
+      <tr class='header'>
+        <td>Blobber Stats</td>
+        <td>Configurations</td>
+        <td>Read markers</td>
+        <td>Write markers</td>
+        <td>Infra</td>
       </tr>
       <tr>
-        <td>PublicKey</td>
-        <td>{{ .PublicKey }}</td>
-      </tr>
-      <tr>
-        <td>Allocations</td>
-        <td>{{ .NumAllocation }}</td>
-      </tr>
-      <tr>
-        <td>Allocated size (bytes)</td>
-        <td>{{ .AllocatedSize }}</td>
-      </tr>
-      <tr>
-        <td>Used Size (bytes)</td>
-        <td>{{ .UsedSize }}</td>
-      </tr>
-      <tr>
-        <td>Actual Disk Usage (bytes)</td>
-        <td>{{ .DiskSizeUsed }}</td>
-      </tr>
-      <tr>
-        <td>Cloud Files Size (bytes)</td>
-        <td>{{ .CloudFilesSize }}</td>
-      </tr>
-      <tr>
-        <td>Cloud Files Count</td>
-        <td>{{ .CloudTotalFiles }}</td>
-      </tr>
-      <tr>
-        <td>Last Minio Scan</td>
-        <td>{{ .LastMinioScan }}</td>
-      </tr>
-      <tr>
-        <td>Num of files</td>
-        <td>{{ .NumWrites }}</td>
-      </tr>
-	  <tr>
-        <td>Blocks Written</td>
-        <td>{{ .BlockWrites }}</td>
-      </tr>
-	  <tr>
-        <td>Blocks Read</td>
-        <td>{{ .NumReads }}</td>
-      </tr>
-      <tr>
-        <td>Total Challenges</td>
-        <td>{{ .TotalChallenges }}</td>
-      </tr>
-      <tr>
-        <td>Open Challenges</td>
-        <td>{{ .OpenChallenges }}</td>
-      </tr>
-      <tr>
-        <td>Passed Challenges</td>
-        <td>{{ .SuccessChallenges }}</td>
-      </tr>
-      <tr>
-        <td>Failed Challenges</td>
-        <td>{{ .FailedChallenges }}</td>
-      </tr>
-      <tr>
-        <td>Redeemed Challenges</td>
-        <td>{{ .RedeemedChallenges }}</td>
-      </tr>
-      <tr>
-        <td>Redeemed Challenges</td>
-        <td>{{ .RedeemedChallenges }}</td>
-      </tr>
-      <tr>
-        <table>
-          <tr><th colspan="2">Configurations</th></tr>
-          <tr><td>Capacity</td><td>{{ .Capacity }}</td></tr>
-          <tr><td>Read price</td><td>{{ .ReadPrice }}</td></tr>
-          <tr><td>Write price</td><td>{{ .WritePrice }}</td></tr>
-          <tr><td>Min lock demand</td><td>{{ .MinLockDemand }}</td></tr>
-          <tr><td>Max offer duration</td><td>{{ .MaxOfferDuration }}</td></tr>
-          <tr><td>Challenge completion_time</td><td>{{ .ChallengeCompletionTime }}</td></tr>
-          <tr><td>Read lock timeout</td><td>{{ .ReadLockTimeout }}</td></tr>
-          <tr><td>Write lock timeout</td><td>{{ .WriteLockTimeout }}</td></tr>
-        </table>
-      </tr>
-      <tr>
-        <table>
-          <tr><th colspan="2">Read markers</th></tr>
-          <tr>
-            <td>Pending</td>
-            <td>{{ .ReadMarkers.Pending }} <i>(64 KB blocks)</i></td>
-            <td>{{ read_size .ReadMarkers.Pending }}</td>
-          </tr>
-          <tr>
-            <td>Redeemed</td>
-            <td>{{ .ReadMarkers.Redeemed }} <i>(64 KB blocks)</i></td>
-            <td>{{ read_size .ReadMarkers.Redeemed }}</td>
-          </tr>
-        </table>
-      </tr>
-      <tr>
-        <table>
-          <tr><th colspan="3">Write markers</th></tr>
-          <tr>
-            <td>Accepted</td>
-            <td>{{ .WriteMarkers.Accepted.Count }} markers</td>
-            <td>{{ write_size .WriteMarkers.Accepted.Size }}</td>
-          </tr>
-          <tr>
-            <td>Committed</td>
-            <td>{{ .WriteMarkers.Committed.Count }} markers</td>
-            <td>{{ write_size .WriteMarkers.Committed.Size }}</td>
-          </tr>
-          <tr>
-            <td>Failed</td>
-            <td>{{ .WriteMarkers.Failed.Count }} markers</td>
-            <td>{{ write_size .WriteMarkers.Failed.Size }}</td>
-          </tr>
-        </table>
+        <td>
+			<table class='menu' style='border-collapse: collapse;'>
+			  <tr>
+				<td>Allocations</td>
+				<td>{{ .NumAllocation }}</td>
+			  </tr>
+			  <tr>
+				<td>Allocated size (bytes)</td>
+				<td>{{ .AllocatedSize }}</td>
+			  </tr>
+			  <tr>
+				<td>Used Size (bytes)</td>
+				<td>{{ .UsedSize }}</td>
+			  </tr>
+			  <tr>
+				<td>Actual Disk Usage (bytes)</td>
+				<td>{{ .DiskSizeUsed }}</td>
+			  </tr>
+			  <tr>
+				<td>Cloud Files Size (bytes)</td>
+				<td>{{ .CloudFilesSize }}</td>
+			  </tr>
+			  <tr>
+				<td>Cloud Files Count</td>
+				<td>{{ .CloudTotalFiles }}</td>
+			  </tr>
+			  <tr>
+				<td>Last Minio Scan</td>
+				<td>{{ .LastMinioScan }}</td>
+			  </tr>
+			  <tr>
+				<td>Num of files</td>
+				<td>{{ .NumWrites }}</td>
+			  </tr>
+			  <tr>
+				<td>Blocks Written</td>
+				<td>{{ .BlockWrites }}</td>
+			  </tr>
+			  <tr>
+				<td>Blocks Read</td>
+				<td>{{ .NumReads }}</td>
+			  </tr>
+			  <tr>
+				<td>Total Challenges</td>
+				<td>{{ .TotalChallenges }}</td>
+			  </tr>
+			  <tr>
+				<td>Open Challenges</td>
+				<td>{{ .OpenChallenges }}</td>
+			  </tr>
+			  <tr>
+				<td>Passed Challenges</td>
+				<td>{{ .SuccessChallenges }}</td>
+			  </tr>
+			  <tr>
+				<td>Failed Challenges</td>
+				<td>{{ .FailedChallenges }}</td>
+			  </tr>
+			  <tr>
+				<td>Redeemed Challenges</td>
+				<td>{{ .RedeemedChallenges }}</td>
+			  </tr>
+			  <tr>
+				<td>Redeemed Challenges</td>
+				<td>{{ .RedeemedChallenges }}</td>
+			  </tr>
+			</table>
+		  </td>
+		  <td valign='top'>
+			<table class='menu' style='border-collapse: collapse;'>
+			  <tr><td>Capacity</td><td>{{ .Capacity }}</td></tr>
+			  <tr><td>Read price</td><td>{{ .ReadPrice }}</td></tr>
+			  <tr><td>Write price</td><td>{{ .WritePrice }}</td></tr>
+			  <tr><td>Min lock demand</td><td>{{ .MinLockDemand }}</td></tr>
+			  <tr><td>Max offer duration</td><td>{{ .MaxOfferDuration }}</td></tr>
+			  <tr><td>Challenge completion_time</td><td>{{ .ChallengeCompletionTime }}</td></tr>
+			  <tr><td>Read lock timeout</td><td>{{ .ReadLockTimeout }}</td></tr>
+			  <tr><td>Write lock timeout</td><td>{{ .WriteLockTimeout }}</td></tr>
+			</table>
+		  </td>
+		  <td valign='top'>
+			<table class='menu' style='border-collapse: collapse;'>
+			  <tr>
+				<td>Pending</td>
+				<td>{{ .ReadMarkers.Pending }} <i>(64 KB blocks)</i></td>
+				<td>{{ read_size .ReadMarkers.Pending }}</td>
+			  </tr>
+			  <tr>
+				<td>Redeemed</td>
+				<td>{{ .ReadMarkers.Redeemed }} <i>(64 KB blocks)</i></td>
+				<td>{{ read_size .ReadMarkers.Redeemed }}</td>
+			  </tr>
+			</table>
+		  </td>
+		  <td valign='top'>
+			<table class='menu' style='border-collapse: collapse;'>
+			  <tr>
+				<td>Accepted</td>
+				<td>{{ .WriteMarkers.Accepted.Count }} markers</td>
+				<td>{{ write_size .WriteMarkers.Accepted.Size }}</td>
+			  </tr>
+			  <tr>
+				<td>Committed</td>
+				<td>{{ .WriteMarkers.Committed.Count }} markers</td>
+				<td>{{ write_size .WriteMarkers.Committed.Size }}</td>
+			  </tr>
+			  <tr>
+				<td>Failed</td>
+				<td>{{ .WriteMarkers.Failed.Count }} markers</td>
+				<td>{{ write_size .WriteMarkers.Failed.Size }}</td>
+			  </tr>
+			</table>
+		  </td>
+		  <td valign='top'>
+			<table class='menu' style='border-collapse: collapse;'>
+			  <tr>
+				<td>CPU</td>
+				<td>{{ .InfraStats.CPUs }}</td>
+			  </tr>
+              <tr>
+				<td>Go Routines</td>
+				<td>{{ .InfraStats.NumberOfGoroutines }}</td>
+			  </tr>
+              <tr>
+				<td>Heap Sys</td>
+				<td>{{ .InfraStats.HeapSys }}</td>
+			  </tr>
+              <tr>
+				<td>Heap Alloc</td>
+				<td>{{ .InfraStats.HeapAlloc }}</td>
+			  </tr>
+              <tr>
+				<td>Is Active On Chain</td>
+				<td>{{ .InfraStats.ActiveOnChain }}</td>
+			  </tr>
+			</table>
+		  </td>
       </tr>
     </table>
 
@@ -212,7 +230,7 @@ const tpl = `<!DOCTYPE html>
       </tr>
       <tr>
         <td colspan=6>
-          <table>
+          <table class='menu' style='border-collapse: collapse;'>
             {{ if .ReadMarkers }}
               <tr><th colspan="2">Read markers</th></tr>
               <tr>
@@ -231,7 +249,7 @@ const tpl = `<!DOCTYPE html>
           </table>
         </td>
         <td colspan=6>
-          <table>
+          <table class='menu' style='border-collapse: collapse;'>
             {{ if .WriteMarkers }}
               <tr><th colspan="3">Write markers</th></tr>
               <tr>
@@ -257,8 +275,6 @@ const tpl = `<!DOCTYPE html>
       </tr>
       {{end}}
     </table>
-  </body>
-</html>
 `
 
 func StatsHandler(w http.ResponseWriter, r *http.Request) {
@@ -267,6 +283,8 @@ func StatsHandler(w http.ResponseWriter, r *http.Request) {
 	db := datastore.GetStore().GetTransaction(ctx)
 	defer db.Rollback()
 	bs := LoadBlobberStats(ctx)
+	bs.InfraStats.ActiveOnChain = r.Header.Get("health")
+
 	err := t.Execute(w, bs)
 	if err != nil {
 		Logger.Error("Error in executing the template", zap.Error(err))

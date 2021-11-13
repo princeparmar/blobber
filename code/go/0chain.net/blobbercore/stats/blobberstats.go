@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"runtime"
 	"time"
 
 	"github.com/0chain/blobber/code/go/0chain.net/blobbercore/config"
@@ -77,6 +78,7 @@ type BlobberStats struct {
 	NumAllocation int64  `json:"num_of_allocations"`
 	ClientID      string `json:"-"`
 	PublicKey     string `json:"-"`
+	InfraStats     InfraStats `json:"-"`
 
 	// configurations
 	Capacity                int64         `json:"capacity"`
@@ -103,6 +105,8 @@ func LoadBlobberStats(ctx context.Context) *BlobberStats {
 	fs := &BlobberStats{}
 	fs.loadBasicStats(ctx)
 	fs.loadDetailedStats(ctx)
+	fs.loadDetailedStats(ctx)
+	fs.loadInfraStats()
 	return fs
 }
 
@@ -170,6 +174,17 @@ func (bs *BlobberStats) loadDetailedStats(ctx context.Context) {
 			bs.WriteMarkers.Failed.Count += as.WriteMarkers.Failed.Count
 			bs.WriteMarkers.Failed.Size += as.WriteMarkers.Failed.Size
 		}
+	}
+}
+
+func (bs *BlobberStats) loadInfraStats() {
+	memstats := runtime.MemStats{}
+	runtime.ReadMemStats(&memstats)
+	bs.InfraStats = InfraStats{
+		CPUs:               runtime.NumCPU(),
+		NumberOfGoroutines: runtime.NumGoroutine(),
+		HeapSys:    memstats.HeapSys,
+		HeapAlloc:    memstats.HeapAlloc,
 	}
 }
 
